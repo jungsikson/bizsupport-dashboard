@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경영지원팀 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@latest/dist/web/variable/pretendardvariable.css">
+<style>
+:root {
+  /* Caramel Design System tokens */
+  --bg-canvas:  #F5F7FA;
+  --bg-surface: #FFFFFF;
+  --bg-subtle:  #F9FAFC;
+  --text-primary:   #2F3238;
+  --text-secondary: #5B5F66;
+  --text-tertiary:  #8A8F96;
+  --border-subtle:  #EBEDF0;
+  --border-default: #E4E6EB;
+  --border-strong:  #C9CDD4;
+  --accent:         #FE5B1B;
+  --accent-hover:   #ED4213;
+  --accent-subtle:  #FFE8DF;
+  /* Caramel token aliases (used by the rebuild layer) */
+  --brand:         #FE5B1B;
+  --brand-hover:   #FE743D;
+  --brand-pressed: #ED4213;
+  --brand-tint:    rgba(254,91,27,0.12);
+  --brand-05:      #FFE8DF;
+  --brand-shadow:  rgba(254,91,27,0.24);
+  --bg-muted:      #EBEDF0;
+  --bg-scrim:      rgba(0,0,0,0.32);
+  --border-1:      #E4E6EB;
+  --border-brand:  #FE5B1B;
+  --pink-soft:     #FFCCF6;
+  --font-mono:     'IBM Plex Mono','Roboto Mono',ui-monospace,'SFMono-Regular',monospace;
+  --shadow-1:      0 0 8px 0 rgba(0,0,0,0.04);
+  --shadow-2:      0 0 16px 0 rgba(0,0,0,0.04);
+  --shadow-3:      0 0 16px 0 rgba(0,0,0,0.08);
+  --shadow-brand:  0 0 12px 0 rgba(254,91,27,0.24);
+  --shadow-sheet:  0 -4px 24px 0 rgba(0,0,0,0.08);
+  --status-done-bg:    #EAF8F0;
+  --status-done-fg:    #1B8E4D;
+  --status-done-border:#C5EBD5;
+  --status-overdue-bg: #FFECEC;
+  --status-overdue-fg: #C8392E;
+  --status-soon-bg:    #FFF3E0;
+  --status-soon-fg:    #8A6D00;
+  --p-do-bg:#FFE2DD;       --p-do-fg:#C8392E;
+  --p-delegate-bg:#FFF3D1; --p-delegate-fg:#8A6D00;
+  --p-schedule-bg:#DDEFFF; --p-schedule-fg:#0A6FB5;
+  --p-eliminate-bg:#F0F1F4;--p-eliminate-fg:#6D727A;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --shadow-card: 0 0 0 1px #EBEDF0, 0 2px 12px rgba(0,0,0,0.04);
+  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tracking: -0.02em;
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--bg-canvas);color:var(--text-primary);font-size:var(--text-sm);letter-spacing:var(--tracking)}
+.header{background:#FFFFFF;color:var(--text-primary);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border-subtle)}
+.header-title{font-size:var(--text-base);font-weight:600;letter-spacing:-0.02em;color:var(--text-primary)}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-nav{display:flex;align-items:center;gap:6px}
+.date-nav button{background:var(--bg-subtle);border:1px solid var(--border-default);color:var(--text-primary);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-size:var(--text-xs)}
+.date-nav button:hover{background:var(--bg-canvas)}
+.date-label{font-size:var(--text-sm);font-weight:600;min-width:160px;text-align:center;letter-spacing:-0.01em;color:var(--text-primary)}
+.icon-btn{background:var(--bg-subtle);border:1px solid var(--border-default);color:var(--text-secondary);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-size:var(--text-xs)}
+.icon-btn:hover{background:var(--bg-canvas)}
+.toggle-done-btn{background:var(--bg-subtle);border:1px solid var(--border-default);color:var(--text-secondary);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-size:var(--text-xs)}
+.toggle-done-btn.active{background:var(--accent);color:#FFFFFF;border-color:var(--accent)}
+.main{padding:28px;max-width:1400px;margin:0 auto}
+.tab-bar{display:flex;gap:2px;margin-bottom:28px;flex-wrap:wrap;background:var(--bg-surface);padding:4px;border-radius:24px;width:fit-content;box-shadow:var(--shadow-card)}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;background:transparent;cursor:pointer;font-size:var(--text-xs);font-weight:500;color:var(--text-secondary);font-family:var(--font-sans)}
+.tab-btn:hover{background:var(--bg-surface);color:var(--text-primary)}
+.tab-btn.active{background:var(--accent);color:#FFFFFF;box-shadow:0 1px 4px rgba(254,91,27,0.24)}
+.person-autolab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px}
+.person-autolab-card{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;overflow:hidden;box-shadow:var(--shadow-card)}
+.person-autolab-header{padding:14px 18px;background:var(--bg-subtle);color:var(--text-primary);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-subtle)}
+.person-autolab-name{font-size:var(--text-sm);font-weight:700;letter-spacing:-0.02em;color:var(--text-primary)}
+.person-autolab-body{padding:16px 18px}
+.autolab-item{display:flex;align-items:flex-start;gap:8px;padding:11px 14px;border-radius:var(--radius-md);margin-bottom:8px;border:none;background:transparent;border-left:3px solid transparent}
+.autolab-item.done{background:transparent}
+.autolab-item.done .autolab-task-text{text-decoration:line-through;color:var(--text-tertiary)}
+.autolab-item.overdue{border-left:3px solid #FC5555;background:transparent}
+.autolab-item.overdue.done{border-left:3px solid var(--border-default);background:transparent}
+.autolab-item.due-soon{border-left:3px solid #F2A60C;background:transparent}
+.autolab-check-area{cursor:pointer;display:flex;align-items:flex-start;gap:6px;flex:1;min-width:0}
+.autolab-task-text{font-size:var(--text-sm);color:var(--text-primary);line-height:1.55;flex:1;font-weight:450}
+.autolab-action-btn{font-size:var(--text-xs);padding:2px 6px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-subtle);cursor:pointer;color:var(--text-secondary);flex-shrink:0}
+.autolab-action-btn.del{border-color:var(--status-overdue-bg);background:var(--status-overdue-bg);color:var(--status-overdue-fg)}
+.priority-badge{display:none}
+.p-DO{background:var(--p-do-bg);color:var(--p-do-fg)}
+.p-DELEGATE{background:var(--p-delegate-bg);color:var(--p-delegate-fg)}
+.p-SCHEDULE{background:var(--p-schedule-bg);color:var(--p-schedule-fg)}
+.p-ELIMINATE{background:var(--p-eliminate-bg);color:var(--p-eliminate-fg)}
+.p-none{background:var(--p-eliminate-bg);color:var(--text-tertiary)}
+.due-badge{font-size:var(--text-xs);font-weight:500;white-space:nowrap;background:transparent;padding:0}
+.due-overdue{color:var(--status-overdue-fg);background:transparent}
+.due-soon{color:var(--status-soon-fg);background:transparent}
+.due-normal{color:var(--text-tertiary);background:transparent}
+.overdue-badge{font-size:var(--text-xs);font-weight:500;color:var(--status-overdue-fg);flex-shrink:0;background:transparent;padding:0;min-width:36px;text-align:right;margin-top:2px}
+.done-badge{font-size:var(--text-xs);color:#1B8E4D;font-weight:500;background:transparent;padding:0}
+.checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border-strong);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;transition:all 0.15s}
+.checkbox.checked{background:var(--accent);border-color:var(--accent)}
+.cohort-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:28px}
+.cohort-card{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;overflow:hidden;box-shadow:var(--shadow-card)}
+.cohort-card-header{padding:12px 18px;font-size:var(--text-sm);font-weight:600;display:flex;align-items:center;justify-content:space-between;letter-spacing:-0.01em}
+.edit-day-btn{font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);cursor:pointer;font-weight:500;color:var(--text-secondary)}
+.edit-day-btn:hover{background:var(--bg-subtle)}
+.progress-bar-wrap{height:3px;background:var(--border-default)}
+.progress-bar{height:3px;transition:width 0.3s}
+.cohort-card-body{padding:16px 18px}
+.cohort-matrix-table{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+.cohort-matrix-table th,.cohort-matrix-table td{border:1px solid #E4E6EB;padding:6px 10px;text-align:center;white-space:nowrap}
+.cohort-matrix-table th{background:#F5F7FA;font-weight:600;font-size:12px}
+.cm-field{background:#FFF1E8}
+.cm-autolab{background:#EAF3FF}
+.cm-off{background:#F5F7FA}
+.cm-date-cell{font-size:12px;font-weight:500;text-align:left;min-width:90px}
+.assignee-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.assignee-row:last-child{margin-bottom:0}
+.a-chip{font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;min-width:44px;text-align:right;background:transparent!important;padding:0;border-radius:0;margin-top:2px;line-height:1.4}
+.task-list{flex:1}
+.task-item{display:flex;align-items:flex-start;gap:7px;padding:4px 0;cursor:pointer;border-radius:8px}
+.task-item:hover{background:var(--bg-canvas)}
+.task-item.done .task-text{text-decoration:line-through;color:var(--text-tertiary)}
+.task-item.overdue-item{background:transparent;border-left:none;padding-left:0}
+.task-item.overdue-item.done{background:transparent}
+.task-text{font-size:var(--text-sm);color:var(--text-primary);line-height:1.5;flex:1}
+.progress-text{font-size:var(--text-xs);font-weight:500;color:var(--text-secondary)}
+.overdue-section-label{font-size:var(--text-xs);color:var(--status-overdue-fg);font-weight:600;padding:4px 0 2px;border-bottom:1px solid var(--status-overdue-bg);margin-bottom:4px}
+.matrix-wrap{margin-bottom:16px}
+.matrix-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.matrix-cell{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;overflow:hidden;min-height:120px;transition:box-shadow 0.2s;box-shadow:var(--shadow-card)}
+.matrix-cell.drag-over{box-shadow:0 0 0 2px var(--accent),0 4px 16px rgba(254,91,27,0.16);background:var(--accent-subtle)}
+.matrix-cell-header{padding:8px 14px;font-size:var(--text-xs);font-weight:600;display:flex;align-items:center;justify-content:space-between;letter-spacing:0.02em;text-transform:uppercase}
+.matrix-cell-body{padding:14px 16px;min-height:80px}
+.m-DO .matrix-cell-header{background:var(--p-do-bg);color:var(--p-do-fg)}
+.m-SCHEDULE .matrix-cell-header{background:var(--p-schedule-bg);color:var(--p-schedule-fg)}
+.m-DELEGATE .matrix-cell-header{background:var(--p-delegate-bg);color:var(--p-delegate-fg)}
+.m-ELIMINATE .matrix-cell-header{background:var(--p-eliminate-bg);color:var(--p-eliminate-fg)}
+.matrix-item{display:flex;align-items:flex-start;gap:7px;padding:6px 8px;border-radius:var(--radius-sm);margin-bottom:4px;background:var(--bg-canvas);border:1px solid var(--border-subtle);cursor:pointer}
+.matrix-item:hover{background:var(--bg-subtle)}
+.matrix-item.done .matrix-task-text{text-decoration:line-through;color:var(--text-tertiary)}
+.matrix-task-text{font-size:var(--text-sm);color:var(--text-primary);flex:1;line-height:1.5}
+.matrix-overdue{border-left:3px solid #FC5555}
+.matrix-empty{font-size:var(--text-xs);color:var(--text-tertiary);text-align:center;padding:20px 0}
+.matrix-add-btn{font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-sm);border:1px solid currentColor;background:transparent;cursor:pointer;opacity:0.7}
+.matrix-add-btn:hover{opacity:1}
+.matrix-add-form{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.matrix-add-form input{font-size:var(--text-xs);padding:6px 8px;border:1px solid var(--border-default);border-radius:var(--radius-sm);background:var(--bg-surface);font-family:var(--font-sans);color:var(--text-primary)}
+.matrix-add-form-btns{display:flex;flex-direction:column;gap:4px}
+.matrix-add-form-btns button:not(.matrix-confirm-btn){font-size:var(--text-xs);color:var(--text-tertiary);background:none;border:none;cursor:pointer;padding:4px;text-align:center}
+.matrix-confirm-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:var(--text-sm);padding:8px;width:100%;cursor:pointer;font-family:var(--font-sans)}
+.matrix-confirm-btn:disabled{background:var(--accent-subtle);color:var(--accent);cursor:not-allowed}
+.unclassified-section{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;padding:20px;margin-top:8px;box-shadow:var(--shadow-card)}
+.unclassified-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:4px;border:1px solid var(--border-subtle);background:var(--bg-canvas);cursor:grab;user-select:none;transition:opacity 0.2s}
+.unclassified-item:active{cursor:grabbing}
+.unclassified-item.dragging{opacity:0.4}
+.drag-hint{font-size:var(--text-xs);color:var(--text-tertiary);margin-bottom:8px}
+.history-wrap{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;overflow:hidden;box-shadow:var(--shadow-card)}
+.history-toolbar{padding:12px 20px;background:var(--bg-subtle);color:var(--text-primary);display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border-default)}
+.history-toolbar select{font-size:var(--text-xs);padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);cursor:pointer}
+.history-toolbar select option{color:var(--text-primary);background:var(--bg-surface)}
+.history-body{padding:16px 20px}
+.history-date-group{margin-bottom:16px}
+.history-date-label{font-size:var(--text-xs);font-weight:600;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid var(--border-default);margin-bottom:8px;letter-spacing:0.02em;text-transform:uppercase}
+.history-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:4px;border:1px solid var(--border-subtle);background:var(--bg-canvas)}
+.history-item.done{background:var(--status-done-bg);border-color:var(--status-done-border)}
+.history-item.done .history-task-text{text-decoration:line-through;color:var(--text-tertiary)}
+.history-task-text{font-size:var(--text-sm);color:var(--text-primary);flex:1;line-height:1.5}
+.history-done-toggle{font-size:var(--text-xs);font-weight:500;color:var(--text-secondary);cursor:pointer;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-default);background:var(--bg-canvas);margin-bottom:8px;display:flex;align-items:center;gap:6px;width:fit-content}
+.history-done-toggle:hover{background:var(--bg-subtle)}
+.loading{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+.spinner{width:32px;height:32px;border:3px solid var(--border-default);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text-primary);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:var(--text-xs);opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;font-family:var(--font-sans)}
+.toast.show{opacity:1}
+.empty-day{background:var(--bg-surface);border-radius:var(--radius-lg);border:none;padding:48px;text-align:center;color:var(--text-tertiary);box-shadow:var(--shadow-card)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;justify-content:center;align-items:flex-start;padding:40px 16px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg-surface);border-radius:20px;padding:28px;width:100%;max-width:500px;box-shadow:0 16px 48px rgba(0,0,0,0.16),0 0 0 1px var(--border-subtle)}
+.modal-title{font-size:var(--text-base);font-weight:600;margin-bottom:4px;letter-spacing:-0.01em;color:var(--text-primary)}
+.modal-sub{font-size:var(--text-xs);color:var(--text-tertiary);margin-bottom:14px}
+.modal textarea{width:100%;font-size:var(--text-sm);border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:10px 12px;line-height:1.6;resize:vertical;min-height:120px;font-family:var(--font-sans);color:var(--text-primary)}
+.modal textarea:focus{outline:none;border-color:var(--accent)}
+.modal-guide{font-size:var(--text-xs);color:var(--text-tertiary);margin-top:8px;line-height:1.6}
+.modal-guide b{color:var(--text-secondary)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal-btns button{font-size:var(--text-sm);padding:7px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-default);cursor:pointer;font-family:var(--font-sans)}
+.btn-cancel{background:var(--bg-subtle);color:var(--text-secondary)}.btn-cancel:hover{background:var(--bg-canvas)}
+.btn-save{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-save:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-ghost{background:var(--bg-surface);border:1px solid var(--border-default);color:var(--text-secondary);border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-sans);font-size:var(--text-xs);font-weight:600}
+.btn-ghost:hover{background:var(--bg-subtle);border-color:var(--border-strong);color:var(--text-primary)}
+/* Priority-based left borders via :has() */
+.autolab-item:has(.p-DO){border-left:3px solid #FC5555}
+.autolab-item:has(.p-SCHEDULE){border-left:3px solid var(--accent)}
+.autolab-item:has(.p-DELEGATE){border-left:3px solid #F2A60C}
+.autolab-item:has(.p-DO):hover,.autolab-item:has(.p-SCHEDULE):hover,.autolab-item:has(.p-DELEGATE):hover{background:var(--bg-subtle)}
+@media (max-width: 640px) {
+  .main{padding:12px}
+  .header{padding:10px 14px}
+  .date-label{min-width:120px;font-size:13px}
+  .tab-bar{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;border-radius:12px}
+  .tab-btn{white-space:nowrap;padding:8px 14px}
+  .person-autolab-grid{grid-template-columns:1fr;gap:10px}
+  .matrix-grid{grid-template-columns:1fr}
+  .cohort-grid{grid-template-columns:1fr}
+  .modal-bg{padding:16px 10px}
+  .modal{padding:20px 16px}
+}
+
+/* ============================================================
+   Caramel-native rebuild — presentation layer
+   (component language: app bar, segmented tabs, team-board
+    cards, pill tags, bottom sheets, 2×2 matrix)
+   ============================================================ */
+::selection{background:var(--brand-tint)}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:var(--border-default);border-radius:999px;border:3px solid var(--bg-canvas)}
+*::-webkit-scrollbar-thumb:hover{background:var(--border-strong)}
+.main{max-width:1320px;padding:28px 28px 64px}
+
+/* ---- App bar ---- */
+.header{padding:0 28px;min-height:66px;gap:16px;box-shadow:0 1px 0 var(--border-subtle)}
+.brand-lockup{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-mark{width:34px;height:34px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;letter-spacing:-0.05em;flex:none}
+.brand-text{display:flex;flex-direction:column;gap:1px;line-height:1.1;min-width:0}
+.brand-wordmark{font-weight:800;font-size:16px;letter-spacing:-0.03em;color:var(--text-primary)}
+.brand-sub{font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-right{gap:10px}
+/* date stepper as segmented control */
+.date-nav{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:3px;gap:0}
+.date-nav button{background:transparent;border:none;border-radius:6px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:13px}
+.date-nav button:hover{background:var(--bg-subtle);color:var(--brand)}
+.date-label{min-width:178px;font-size:13px;font-weight:700;color:var(--text-primary)}
+/* ghost pill controls */
+.icon-btn,.toggle-done-btn{background:var(--bg-surface);border:1px solid var(--border-default);color:var(--text-secondary);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
+.icon-btn:hover,.toggle-done-btn:hover{background:var(--bg-subtle);border-color:var(--border-strong);color:var(--text-primary)}
+.toggle-done-btn.active{background:var(--brand-tint);color:var(--brand);border-color:transparent;box-shadow:none}
+
+/* ---- Segmented tab control ---- */
+.tab-bar{gap:3px;margin-bottom:28px;background:var(--bg-muted);padding:4px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--border-subtle);width:fit-content;max-width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;flex:none;transition:background .15s,color .15s}
+.tab-btn:hover{background:rgba(255,255,255,0.6);color:var(--text-primary)}
+.tab-btn.active{background:var(--brand);color:#fff}
+
+/* ---- Pill tag system (Caramel Tag) ---- */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;white-space:nowrap}
+.tag-neutral{background:var(--bg-muted);color:var(--text-secondary)}
+.tag-brand{background:var(--brand-tint);color:var(--brand)}
+.tag-danger{background:var(--status-overdue-bg);color:var(--status-overdue-fg)}
+.tag-success{background:var(--status-done-bg);color:var(--status-done-fg)}
+.tag-amber{background:var(--status-soon-bg);color:var(--status-soon-fg)}
+
+/* ---- Cards: hover lift ---- */
+.person-autolab-card,.cohort-card{position:relative;transition:box-shadow .2s ease}
+.person-autolab-card:hover,.cohort-card:hover{box-shadow:0 0 0 1px var(--border-default),0 4px 14px rgba(0,0,0,0.05)}
+
+/* ---- Person team-board card ---- */
+.person-accent{height:3px;width:100%;opacity:0.9}
+.person-autolab-header{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:14px 16px 12px}
+.person-id{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto}
+.person-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.person-autolab-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-meta{display:flex;align-items:center;gap:8px;flex:none}
+.person-count{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-tertiary);letter-spacing:-0.02em}
+.person-count b{color:var(--text-primary);font-weight:700}
+.person-count-sep{color:var(--border-strong);margin:0 1px}
+.person-progress{height:4px;background:var(--bg-muted)}
+.person-progress-bar{height:100%;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+.autolab-item{padding:11px 12px;border-radius:var(--radius-md);transition:background .12s}
+.autolab-task-text{font-weight:500}
+.autolab-action-btn{opacity:0;border-radius:6px;width:22px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;transition:opacity .15s,background .15s}
+.autolab-item:hover .autolab-action-btn{opacity:1}
+.autolab-action-btn.del{border-color:transparent;background:var(--bg-muted);color:var(--text-tertiary)}
+.autolab-action-btn.del:hover{background:var(--status-overdue-bg);color:var(--status-overdue-fg)}
+
+/* ---- Badges → pills ---- */
+.due-badge{padding:0;background:transparent;font-weight:600;font-size:12px;line-height:18px}
+.due-badge.due-overdue{color:var(--status-overdue-fg);font-weight:700}
+.due-badge.due-soon{color:var(--status-soon-fg);font-weight:700}
+.due-badge.due-normal{color:var(--text-tertiary)}
+.overdue-badge{background:transparent;color:var(--status-overdue-fg);padding:0;font-weight:700;font-size:12px;line-height:18px;min-width:0;text-align:left;margin-top:0}
+.done-badge{background:transparent;color:var(--status-done-fg);padding:0;font-weight:700;font-size:12px;line-height:18px}
+
+/* ---- Checkbox ---- */
+.checkbox{width:18px;height:18px;border-radius:6px;border:1.5px solid var(--border-strong);transition:all .15s}
+.autolab-check-area:hover .checkbox,.task-item:hover .checkbox{border-color:var(--brand)}
+.checkbox.checked{background:var(--brand);border-color:var(--brand)}
+
+/* ---- Cohort card ---- */
+.cohort-card-header{padding:14px 18px;background:var(--bg-surface);color:var(--text-primary)}
+.cohort-num{font-size:22px;font-weight:800;letter-spacing:-0.04em;line-height:1}
+.cohort-num-suffix{font-size:13px;font-weight:700;margin-left:1px;opacity:0.7}
+.progress-bar-wrap{height:4px;background:var(--bg-muted)}
+.progress-bar{height:100%}
+.a-chip{background:transparent!important;padding:0!important;border-radius:0!important;min-width:44px;text-align:right;font-size:12px;font-weight:700;margin-top:0;line-height:1.5}
+.task-item{padding:6px 8px;border-radius:var(--radius-sm)}
+.task-text{font-weight:500}
+.overdue-section-label{border:none;color:var(--status-overdue-fg);font-weight:700;letter-spacing:0.02em;text-transform:uppercase;font-size:11px;padding:2px 0 6px}
+
+/* ---- Eisenhower matrix ---- */
+.matrix-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.matrix-title{font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--text-primary)}
+.matrix-axis-note{font-size:12px;font-weight:600;color:var(--text-tertiary);background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:6px 12px}
+.matrix-cell{border-radius:var(--radius-lg)}
+.matrix-cell-header{padding:11px 16px;text-transform:none;letter-spacing:-0.01em;font-size:13px;font-weight:700}
+.matrix-item{border-radius:var(--radius-md);border-color:var(--border-subtle);background:var(--bg-surface);padding:9px 11px;transition:background .12s,box-shadow .12s}
+.matrix-item:hover{background:var(--bg-surface);box-shadow:var(--shadow-1)}
+.matrix-task-text{font-weight:500}
+.matrix-confirm-btn{border-radius:var(--radius-md);font-weight:700}
+.unclassified-item{border-radius:var(--radius-md);border-color:var(--border-subtle)}
+.unclassified-item:hover{border-color:var(--border-default);background:var(--bg-subtle)}
+
+/* ---- History ---- */
+.history-wrap{border-radius:var(--radius-lg)}
+.history-toolbar{padding:16px 20px;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle)}
+.history-toolbar select{border-radius:8px;padding:7px 12px;font-weight:600;background:var(--bg-subtle);border-color:transparent}
+.history-toolbar select:hover{background:var(--bg-muted)}
+.history-date-label{border:none;color:var(--text-tertiary);font-weight:700;letter-spacing:0.02em}
+.history-item{border-radius:var(--radius-md);border-color:var(--border-subtle);padding:12px 14px}
+.history-item.done{background:var(--status-done-bg);border-color:var(--status-done-border)}
+.history-done-toggle{border-radius:8px;font-weight:600;background:var(--bg-subtle);border-color:transparent}
+
+/* ---- Cohort schedule table ---- */
+.cohort-matrix-table th{background:var(--bg-subtle);color:var(--text-secondary);text-transform:none;border-color:var(--border-subtle)}
+.cohort-matrix-table td{border-color:var(--border-subtle)}
+
+/* ---- Modals → right slide-in drawer (keeps the list in view) ---- */
+.modal-bg{align-items:stretch;justify-content:flex-end;padding:0;background:var(--bg-scrim);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.modal-bg.open{align-items:stretch}
+.modal{width:100%;max-width:460px;height:100%;max-height:100%;margin:0;border-radius:0;padding:24px 28px 30px;box-shadow:-10px 0 40px rgba(0,0,0,0.14);transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.85,.25,1);position:relative;overflow-y:auto}
+.modal-bg.open .modal{transform:translateX(0)}
+.dm-close{flex:none;width:30px;height:30px;border:none;background:transparent;border-radius:8px;color:var(--text-tertiary);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.dm-close:hover{background:var(--bg-subtle);color:var(--text-primary)}
+.modal-title{font-size:18px;font-weight:700;letter-spacing:-0.02em}
+.modal textarea,.modal input[type=text],.modal select,.modal input[type=date]{border-radius:var(--radius-md)}
+.modal textarea:focus,.modal input[type=text]:focus{border-color:var(--border-brand);border-width:1.5px}
+.modal-btns button{border-radius:var(--radius-md);font-weight:700;padding:11px 20px}
+.btn-save{box-shadow:none}
+@media (min-width:560px){
+  .modal{border-radius:0}
+}
+
+/* ---- Empty / loading ---- */
+.empty-day{border-radius:var(--radius-lg);padding:64px 24px;font-size:15px;font-weight:600}
+.spinner{border-top-color:var(--brand)}
+
+@media (max-width:640px){
+  .date-label{min-width:120px}
+}
+
+/* ============================================================
+   Operations console — from-scratch layout
+   sidebar nav · sticky context bar · hairline panels ·
+   near-monochrome with a single orange accent
+   ============================================================ */
+body{background:var(--bg-canvas)}
+.app{display:flex;align-items:stretch;min-height:100vh}
+.sidebar{width:180px;flex:none;background:var(--bg-surface);border-right:1px solid var(--border-1);
+  display:flex;flex-direction:column;gap:22px;padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar .brand-lockup{padding:2px 8px;flex-direction:column;align-items:flex-start;gap:7px}
+.brand-logo{height:40px;width:auto;display:block;filter:none;max-width:140px}
+.nav{display:flex;flex-direction:column;gap:22px}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-label{font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--text-tertiary);text-transform:uppercase;padding:0 10px 8px}
+/* nav rows — switchTab() forces class back to .tab-btn[.active], so we style those */
+.tab-btn{position:relative;display:flex;align-items:center;width:100%;justify-content:flex-start;text-align:left;
+  padding:9px 10px;border-radius:7px;background:transparent;border:none;cursor:pointer;font-family:var(--font-sans);
+  font-size:13.5px;font-weight:600;letter-spacing:-0.01em;color:var(--text-secondary);transition:color .12s}
+.tab-btn:hover{background:var(--bg-subtle);color:var(--text-primary);box-shadow:none}
+.tab-btn.active{background:var(--brand-tint);color:var(--brand);box-shadow:none}
+.tab-btn.active::before{content:"";position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  min-height:60px;padding:11px 32px;background:rgba(255,255,255,0.82);
+  backdrop-filter:saturate(180%) blur(10px);-webkit-backdrop-filter:saturate(180%) blur(10px);
+  border-bottom:1px solid var(--border-1)}
+.topbar-left{display:flex;align-items:center;gap:14px;min-width:0}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.views{padding:32px;max-width:1240px;width:100%}
+
+/* view + section headers */
+.view-head{margin-bottom:22px}
+.view-title{font-size:21px;font-weight:800;letter-spacing:-0.035em;color:var(--text-primary)}
+.view-sub{font-size:13px;color:var(--text-tertiary);margin-top:4px;letter-spacing:-0.01em}
+.section-label{font-size:12px;font-weight:700;letter-spacing:0.02em;color:var(--text-secondary);margin:0 0 14px}
+
+/* dashboard: 3 person columns as one hairline-unified panel */
+.person-autolab-grid{grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border-1);
+  border:1px solid var(--border-1);border-radius:10px;overflow:hidden;margin-bottom:36px}
+.person-autolab-card{background:var(--bg-surface);border-radius:0;box-shadow:none}
+.person-autolab-card:hover{box-shadow:none}
+.person-accent{display:none}
+.person-autolab-header{background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);padding:15px 16px 13px;min-height:48px}
+.person-autolab-name{font-size:14px;font-weight:700;letter-spacing:-0.01em}
+.person-progress{height:2px;background:var(--bg-muted)}
+.person-count{font-size:12px}
+
+/* cohort: flat hairline cards */
+.cohort-grid{grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-bottom:8px}
+.cohort-card{border:1px solid var(--border-1);border-radius:10px;box-shadow:none}
+.cohort-card:hover{box-shadow:none}
+.cohort-card-header{border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
+.cohort-num{font-size:20px;font-weight:800;color:var(--text-primary)}
+.cohort-num-suffix{color:var(--text-tertiary);opacity:1}
+
+/* matrix / history / empty — flat hairline panels */
+.matrix-cell{border:1px solid var(--border-1);box-shadow:none;border-radius:10px}
+.matrix-grid{gap:16px}
+.matrix-item{box-shadow:none}
+.matrix-item:hover{box-shadow:none;background:var(--bg-subtle)}
+.unclassified-section{border:1px solid var(--border-1);box-shadow:none}
+.history-wrap{border:1px solid var(--border-1);box-shadow:none}
+.empty-day{border:1px solid var(--border-1);box-shadow:none}
+.matrix-title{font-size:20px;font-weight:800;letter-spacing:-0.03em}
+
+@media (max-width:1180px){
+  .person-autolab-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .sidebar{width:auto;height:auto;position:static;border-right:none;border-bottom:1px solid var(--border-1);
+    gap:14px;padding:16px 18px}
+  .nav{flex-direction:row;flex-wrap:wrap;gap:10px 18px}
+  .nav-group{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
+  .nav-label{display:none}
+  .tab-btn{width:auto;padding:7px 12px}
+  .tab-btn.active::before{display:none}
+  .topbar{padding:11px 18px}
+  .views{padding:22px 18px 48px}
+  .person-autolab-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .person-autolab-grid{grid-template-columns:1fr}
+}
+
+/* declutter — remove the left-accent color stripes (overdue/priority cliché),
+   keep overdue signalled by the red "지남" text; align assignee/task rows */
+.autolab-item,
+.autolab-item.overdue,
+.autolab-item.overdue.done,
+.autolab-item.due-soon{border-left:0;padding-left:12px;background:transparent}
+.autolab-item:has(.p-DO),
+.autolab-item:has(.p-SCHEDULE),
+.autolab-item:has(.p-DELEGATE){border-left:0}
+.autolab-item:hover{background:var(--bg-subtle)}
+.matrix-overdue{border-left:0}
+.task-item.overdue-item{border-left:0;padding-left:0}
+.assignee-row{align-items:flex-start}
+.a-chip{padding:6px 0 0 0!important;line-height:1.5;font-size:14px;color:var(--text-secondary)}
+
+/* priority tag — hue = importance, short label for an instant read */
+.ptag{display:inline-flex;align-items:center;font-size:11px;font-weight:700;line-height:18px;letter-spacing:-0.02em;padding:0 7px;border-radius:5px}
+.ptag-DO{background:#FFE7E5;color:#C8392E}
+.ptag-DELEGATE{background:#FBEFD7;color:#92651A}
+.ptag-SCHEDULE{background:#E4F1FC;color:#0A6FB5}
+.ptag-ELIMINATE{background:#EEF0F2;color:#6D727A}
+
+/* 월간 반복 업무 (스프레드시트 뷰) */
+.rt-label{font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px}
+.rt-input{width:100%;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px;background:var(--bg-surface);color:var(--text-primary);box-sizing:border-box}
+.routine-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px 10px}
+.routine-month{display:flex;align-items:center;gap:8px}
+.routine-month button{border:1px solid var(--border-default);background:var(--bg-surface);border-radius:var(--radius-sm);width:28px;height:28px;cursor:pointer;color:var(--text-secondary);font-size:12px}
+.routine-month button:hover{background:var(--bg-subtle)}
+.routine-month-label{font-size:15px;font-weight:700;letter-spacing:-0.02em;min-width:120px;text-align:center}
+.routine-summary{font-size:12px;color:var(--text-secondary)}
+.rt-add-btn{margin-left:auto;font-size:12px;font-weight:600;padding:7px 14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;cursor:pointer}
+.routine-table td.rt-cell{vertical-align:top;text-align:left;padding:4px;min-width:150px;white-space:normal;cursor:pointer}
+.routine-table td.rt-cell:hover{background:var(--bg-subtle)}
+.rt-chip{display:flex;align-items:flex-start;gap:6px;padding:5px 7px;border-radius:6px;background:var(--bg-subtle);border:1px solid var(--border-subtle);margin-bottom:4px;font-size:12px;line-height:1.4}
+.rt-chip.done{opacity:0.5}
+.rt-chip.done .rt-chip-text{text-decoration:line-through;color:var(--text-tertiary)}
+.rt-chip.overdue{background:#FFF1EF;border-color:#F6C9C2}
+.rt-chip-text{flex:1;min-width:0;word-break:keep-all}
+.rt-chip-edit{border:none;background:none;cursor:pointer;color:var(--text-tertiary);font-size:11px;padding:0 2px;flex:none}
+.rt-empty-hint{color:#C9CDD4;font-size:11px;padding:3px 4px}
+.rt-day-cell{font-size:12px;font-weight:500;text-align:left;min-width:86px;white-space:nowrap}
+.rt-rules{padding:6px 16px 40px}
+.rt-rules-title{font-size:13px;font-weight:700;margin:18px 0 8px}
+.rt-rule-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);margin-bottom:5px;font-size:12px;background:var(--bg-surface)}
+.rt-rule-row.off{opacity:0.5}
+.rt-rule-when{font-weight:600;color:var(--text-secondary);min-width:78px}
+.rt-rule-person{color:var(--text-secondary);min-width:56px}
+.rt-rule-task{flex:1;min-width:0;color:var(--text-primary)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand-lockup">
+      <img class="brand-logo" src="assets/caramel-logo.svg" alt="caramel Auto Lab">
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-label">워크스페이스</div>
+        <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">오늘 대시보드</button>
+        <button class="tab-btn" id="tab-history" onclick="switchTab('history')">업무 히스토리</button>
+        <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">월간 반복 업무</button>
+        <button class="tab-btn" id="tab-cells" onclick="switchTab('cells')">셀현황</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">우선순위 매트릭스</div>
+        <button class="tab-btn" id="tab-matrix-정희진" onclick="switchTab('matrix-정희진')">정희진</button>
+        <button class="tab-btn" id="tab-matrix-박현아" onclick="switchTab('matrix-박현아')">박현아</button>
+        <button class="tab-btn" id="tab-matrix-전윤정" onclick="switchTab('matrix-전윤정')">전윤정</button>
+        <button class="tab-btn" id="tab-matrix-강라영" onclick="switchTab('matrix-강라영')">강라영</button>
+      </div>
+    </nav>
+  </aside>
+  <div class="content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="date-nav" id="date-nav-wrap">
+          <button onclick="changeDay(-1)" aria-label="이전 날">◀</button>
+          <div class="date-label" id="date-label">-</div>
+          <button onclick="changeDay(1)" aria-label="다음 날">▶</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="toggle-done-btn" id="toggle-unclassified-btn" onclick="toggleShowUnclassified()">미분류 보이기</button>
+        <button class="toggle-done-btn" id="toggle-done-btn" onclick="toggleShowDone()">완료 숨기기</button>
+        <button class="icon-btn" onclick="goToday()">오늘</button>
+        <button class="icon-btn" onclick="loadData()">↺ 새로고침</button>
+      </div>
+    </header>
+    <main class="views">
+  <div id="view-dashboard"><div id="content"><div class="loading"><div class="spinner"></div>데이터 불러오는 중...</div></div></div>
+  <div id="view-matrix-정희진" style="display:none"><div id="matrix-content-정희진"></div></div>
+  <div id="view-matrix-박현아" style="display:none"><div id="matrix-content-박현아"></div></div>
+  <div id="view-matrix-전윤정" style="display:none"><div id="matrix-content-전윤정"></div></div>
+  <div id="view-matrix-강라영" style="display:none"><div id="matrix-content-강라영"></div></div>
+  <div id="view-history" style="display:none"><div id="history-content"><div class="loading"><div class="spinner"></div>불러오는 중...</div></div></div>
+  <div id="view-routine" style="display:none"><div id="routine-content"></div></div>
+  <div id="view-cells" style="display:none"><div id="cells-content"></div></div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-bg" id="routine-modal-bg">
+  <div class="modal">
+    <div class="modal-title" id="routine-modal-title">반복 업무 추가</div>
+    <div class="modal-sub" id="routine-modal-sub">매달 같은 날 반복되는 업무를 등록해요</div>
+    <div style="margin-bottom:10px">
+      <label class="rt-label">업무 내용</label>
+      <input type="text" id="rt-task" class="rt-input" placeholder="예: 급여 이체 · 원천세 신고">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <label style="flex:1">
+        <span class="rt-label">담당자</span>
+        <select id="rt-person" class="rt-input"><option value="정희진">정희진</option><option value="박현아">박현아</option><option value="전윤정">전윤정</option><option value="강라영">강라영</option></select>
+      </label>
+      <label style="flex:1">
+        <span class="rt-label">주말에 걸리면</span>
+        <select id="rt-shift" class="rt-input">
+          <option value="none">그대로 둠</option>
+          <option value="before">앞 영업일로</option>
+          <option value="after">뒤 영업일로</option>
+        </select>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <label style="flex:1">
+        <span class="rt-label">기준일</span>
+        <select id="rt-daytype" class="rt-input" onchange="onRoutineDayTypeChange()">
+          <option value="day">매월 지정일</option>
+          <option value="last">매월 말일</option>
+        </select>
+      </label>
+      <label style="flex:1">
+        <span class="rt-label">며칠</span>
+        <input type="number" id="rt-day" class="rt-input" min="1" max="31" value="1">
+      </label>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="rt-label">메모 (선택)</label>
+      <input type="text" id="rt-note" class="rt-input" placeholder="담당 부서·유의사항 등">
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="rt-active" checked style="width:16px;height:16px;cursor:pointer">
+      <label for="rt-active" style="font-size:13px;color:var(--text-primary);cursor:pointer">사용 중 (끄면 표에서 숨겨져요)</label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="rt-delete-btn" onclick="deleteRoutine()" style="margin-right:auto;color:#C8392E">삭제</button>
+      <button class="btn-cancel" onclick="closeRoutineModal()">취소</button>
+      <button class="btn-save" id="rt-save-btn" onclick="saveRoutine()">저장</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="autolab-modal-bg">
+  <div class="modal">
+    <div class="modal-title">일감 수정</div>
+    <div class="modal-sub" id="autolab-modal-sub"></div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px">내용</label>
+      <input type="text" id="autolab-modal-task" style="width:100%;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px">담당자</label>
+      <select id="autolab-modal-person" style="width:100%;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px;background:#fff">
+        <option value="정희진">정희진</option>
+        <option value="박현아">박현아</option>
+        <option value="전윤정">전윤정</option>
+        <option value="강라영">강라영</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:4px">우선순위</label>
+      <select id="autolab-modal-priority" style="width:100%;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px;background:#fff">
+        <option value="">미분류</option>
+        <option value="DO">🔴 긴급+중요</option>
+        <option value="DELEGATE">🟡 긴급+안중요</option>
+        <option value="SCHEDULE">🔵 중요+안긴급</option>
+        <option value="ELIMINATE">⚪ 둘다아님</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;display:flex;gap:8px">
+      <label style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--text-secondary);font-weight:600">시작일</span>
+        <input type="date" id="autolab-modal-start" style="font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px;box-sizing:border-box;width:100%">
+      </label>
+      <label style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;color:var(--status-overdue-fg);font-weight:600">마감일</span>
+        <input type="date" id="autolab-modal-due" style="font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 12px;box-sizing:border-box;width:100%">
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="autolab-modal-done" style="width:16px;height:16px;cursor:pointer">
+      <label style="font-size:13px;color:var(--text-primary);cursor:pointer" for="autolab-modal-done">완료로 표시</label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAutolabModal()">취소</button>
+      <button class="btn-save" id="autolab-btn-save" onclick="saveAutolabEdit()">저장</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="detail-modal-bg">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div style="min-width:0;flex:1;margin-right:12px">
+        <div id="dm-view-header">
+          <div class="modal-title" id="detail-modal-title">일감 상세</div>
+          <div class="modal-sub" id="detail-modal-sub"></div>
+        </div>
+        <div id="dm-edit-header" style="display:none">
+          <input type="text" id="dm-task-input" style="width:100%;font-size:15px;font-weight:700;letter-spacing:-0.02em;border:none;border-bottom:2px solid var(--accent);outline:none;padding:4px 0;margin-bottom:10px;background:transparent;color:var(--text-primary);box-sizing:border-box">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <select id="dm-person-select" style="font-size:12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:5px 8px;background:var(--bg-surface);color:var(--text-primary)">
+              <option value="정희진">정희진</option>
+              <option value="박현아">박현아</option>
+              <option value="전윤정">전윤정</option>
+              <option value="강라영">강라영</option>
+            </select>
+            <select id="dm-priority-select" style="font-size:12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:5px 8px;background:var(--bg-surface);color:var(--text-primary)">
+              <option value="">미분류</option>
+              <option value="DO">🔴 긴급+중요</option>
+              <option value="DELEGATE">🟡 긴급+안중요</option>
+              <option value="SCHEDULE">🔵 중요+안긴급</option>
+              <option value="ELIMINATE">⚪ 둘다아님</option>
+            </select>
+            <input type="date" id="dm-start-input" placeholder="시작일" style="font-size:12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:5px 8px;background:var(--bg-surface);color:var(--text-primary)"><input type="date" id="dm-due-input" placeholder="마감일" style="font-size:12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:5px 8px;background:var(--bg-surface);color:var(--text-primary)">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" id="dm-done-check" style="cursor:pointer">완료
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:6px">
+        <button id="dm-edit-btn" class="btn-ghost" onclick="enterDetailEdit()" style="padding:6px 14px">수정</button>
+        <button class="dm-close" onclick="closeDetailModal()" aria-label="닫기" title="닫기 (Esc)">✕</button>
+      </div>
+    </div>
+    <div id="detail-modal-info" style="margin-bottom:10px"></div>
+    <div id="dm-desc-view" style="min-height:36px;font-size:13px;color:var(--text-primary);line-height:1.7;margin-bottom:16px;white-space:pre-wrap"></div>
+    <div id="dm-desc-edit" style="display:none;margin-bottom:16px">
+      <textarea id="detail-modal-desc" rows="4" style="width:100%;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:10px 12px;resize:vertical;font-family:var(--font-sans);line-height:1.6;box-sizing:border-box;color:var(--text-primary)" placeholder="자세한 내용을 적어주세요..."></textarea>
+    </div>
+    <div id="detail-modal-comments" style="margin-bottom:10px;max-height:180px;overflow-y:auto"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select id="detail-comment-author" style="font-size:12px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:7px 8px;background:var(--bg-surface);flex-shrink:0;color:var(--text-primary)">
+        <option value="정희진">정희진</option>
+        <option value="박현아">박현아</option>
+        <option value="전윤정">전윤정</option>
+        <option value="강라영">강라영</option>
+      </select>
+      <input type="text" id="detail-comment-input" placeholder="댓글 입력..." style="flex:1;font-size:13px;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-primary)" onkeydown="if(event.key===\'Enter\'&&!event.isComposing)submitDetailComment()">
+      <button onclick="submitDetailComment()" style="font-size:12px;padding:7px 14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0">등록</button>
+    </div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button id="dm-cancel-btn" class="btn-cancel" onclick="closeDetailModal()">닫기</button>
+      <button id="dm-save-btn" class="btn-save" onclick="saveDetailEdit()" style="display:none">저장</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// SUPABASE CONFIG — 아래 두 값을 교체하세요
+// =============================================
+var SUPABASE_URL = 'https://tzxsjwkahzosmvmvpxxc.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_fmSMAvC9DqvA9EG41fC2HA_Qb_SpMOJ';
+var _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// =============================================
+// 상태 변수
+// =============================================
+var DAYS=['일','월','화','수','목','금','토'];
+var PERSONS=['정희진','박현아','전윤정','강라영'];
+var PRIORITY_LABELS={DO:'🔴 긴급+중요',DELEGATE:'🟡 긴급+안중요',SCHEDULE:'🔵 중요+안긴급',ELIMINATE:'⚪ 둘다아님','':'미분류'};
+var PRIORITY_SHORT={DO:'🔴 DO',DELEGATE:'🟡 위임',SCHEDULE:'🔵 예정',ELIMINATE:'⚪ 제거','':'미분류'};
+var PRIORITY_ORDER={DO:0,DELEGATE:1,SCHEDULE:2,ELIMINATE:3,'':4};
+var curDate=new Date(); curDate.setHours(0,0,0,0);
+var allData={}, checks={}, autolabChecks={};
+var currentTab='dashboard';
+var showDoneDashboard=true;
+var showDoneMatrix=false;
+var showDone=true;
+var showUnclassified=false;
+var dragItemId=null;
+
+var personColorPool=[
+  {bg:'#EBEDF0',text:'#46494F'},{bg:'#EBEDF0',text:'#46494F'},
+  {bg:'#EBEDF0',text:'#46494F'},{bg:'#EBEDF0',text:'#46494F'},
+  {bg:'#EBEDF0',text:'#46494F'},{bg:'#EBEDF0',text:'#46494F'},
+];
+var personColorMap={},personColorIdx=0;
+function getPersonColor(p){
+  if(p==='공통') return {bg:'#F0F1F4',text:'#6D727A'};
+  if(!personColorMap[p]){personColorMap[p]=personColorPool[personColorIdx%personColorPool.length];personColorIdx++;}
+  return personColorMap[p];
+}
+function dk(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtShort(s){if(!s)return '';var p=s.split('-');return p.length>=3?parseInt(p[1])+'/'+parseInt(p[2]):s;}
+function itemDateHtml(item){return '<span style="font-size:12px;line-height:18px;color:var(--text-tertiary)">'+fmtShort(item.dateKey)+'</span>';}
+function dDisp(d){return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일('+DAYS[d.getDay()]+')';}
+function alKey(item){return 'autolab_'+String(item.id);}
+
+function getDueDiff(dueDate){
+  if(!dueDate) return null;
+  var today=new Date(curDate); today.setHours(0,0,0,0);
+  var due=new Date(dueDate); due.setHours(0,0,0,0);
+  return Math.round((due-today)/(1000*60*60*24));
+}
+function dueBadgeHtml(dueDate){
+  if(!dueDate) return '';
+  var diff=getDueDiff(dueDate);
+  var cls,label;
+  if(diff<0){cls='due-overdue';label='D+'+Math.abs(diff)+' 지남';}
+  else if(diff===0){cls='due-soon';label='D-day';}
+  else if(diff<=3){cls='due-soon';label='D-'+diff;}
+  else{cls='due-normal';label='D-'+diff;}
+  return '<span class="due-badge '+cls+'">'+label+'</span>';
+}
+function priorityBadgeHtml(priority){
+  return '<span class="priority-badge p-'+(priority||'none')+'">'+( PRIORITY_SHORT[priority]||'미분류' )+'</span>';
+}
+function priorityTagHtml(priority){
+  if(!priority) return '';
+  var label={DO:'긴급',DELEGATE:'위임',SCHEDULE:'중요',ELIMINATE:'낮음'}[priority]||'';
+  var title={DO:'긴급 · 중요',DELEGATE:'긴급 · 안중요',SCHEDULE:'중요 · 안긴급',ELIMINATE:'둘 다 아님'}[priority]||'';
+  if(!label) return '';
+  return '<span class="ptag ptag-'+priority+'" title="'+title+'">'+label+'</span>';
+}
+
+function shouldShowAutolab(item,curKey){
+  var info=autolabChecks[alKey(item)]||{};
+  var done=!!info.checked,cd=info.completedDate||'';
+  if(item.dateKey>curKey) return false;
+  if(item.dateKey===curKey) return true;
+  if(!done) return true;
+  return cd!==''&&curKey<=cd;
+}
+function shouldShowAutolabMatrix(item){return true;}
+
+function toggleShowUnclassified(){
+  showUnclassified=!showUnclassified;
+  var btn=document.getElementById('toggle-unclassified-btn');
+  btn.textContent=showUnclassified?'미분류 숨기기':'미분류 보이기';
+  btn.className='toggle-done-btn'+(showUnclassified?' active':'');
+  render();
+}
+function toggleShowDone(){
+  showDone=!showDone;
+  if(currentTab==='dashboard') showDoneDashboard=showDone;
+  else if(currentTab.startsWith('matrix-')) showDoneMatrix=showDone;
+  var btn=document.getElementById('toggle-done-btn');
+  btn.textContent=showDone?'완료 숨기기':'완료 보이기';
+  btn.className='toggle-done-btn'+(showDone?' active':'');
+  render();
+  if(currentTab.startsWith('matrix-')) renderMatrix(currentTab.replace('matrix-',''));
+}
+function switchTab(tab){
+  currentTab=tab;
+  var allTabs=['dashboard','matrix-정희진','matrix-박현아','matrix-전윤정','matrix-강라영','history','routine','cells'];
+  allTabs.forEach(function(t){
+    document.getElementById('tab-'+t).className='tab-btn'+(tab===t?' active':'');
+    document.getElementById('view-'+t).style.display=tab===t?'':'none';
+  });
+  document.getElementById('date-nav-wrap').style.display=tab==='dashboard'?'flex':'none';
+  var showToggleBtn=tab==='dashboard'||tab.startsWith('matrix-');
+  document.getElementById('toggle-done-btn').style.display=showToggleBtn?'block':'none';
+  document.getElementById('toggle-unclassified-btn').style.display=tab==='dashboard'?'block':'none';
+  if(tab==='dashboard'){showDone=showDoneDashboard;}
+  else if(tab.startsWith('matrix-')){showDone=showDoneMatrix;}
+  var btn=document.getElementById('toggle-done-btn');
+  btn.textContent=showDone?'완료 숨기기':'완료 보이기';
+  btn.className='toggle-done-btn'+(showDone?' active':'');
+  if(tab==='history') renderHistory();
+  if(tab==='routine') renderRoutine();
+  if(tab==='cells') renderCellStatus();
+  if(tab.startsWith('matrix-')) renderMatrix(tab.replace('matrix-',''));
+}
+
+// =============================================
+// 데이터 로드 (Supabase)
+// =============================================
+async function loadData(){
+  document.getElementById('content').innerHTML='<div class="loading"><div class="spinner"></div>데이터 불러오는 중...</div>';
+  try {
+    var results=await Promise.all([
+      _sb.from('biz_task').select('*').order('id'),
+      _sb.from('biz_check').select('*'),
+      _sb.from('biz_comment').select('*').order('id'),
+      _sb.from('biz_routine').select('*').order('id'),
+    ]);
+    var taskRes=results[0],checkRes=results[1],commentRes=results[2],routineRes=results[3];
+    if(taskRes.error) throw taskRes.error;
+
+    var todayKey=dk(new Date());
+    var data={};
+
+    data._routines=(routineRes.data||[]).map(function(row){
+      return {id:String(row.id),person:row.person,task:row.task,
+        dayType:row.day_type||'day',dayOfMonth:row.day_of_month,
+        weekendShift:row.weekend_shift||'none',note:row.note||'',active:row.active!==false};
+    });
+
+    data._autolab=(taskRes.data||[]).map(function(row){
+      return {id:String(row.id),dateKey:row.start_date,task:row.task,person:row.person,
+        priority:row.priority||'',dueDate:row.due_date||'',createdAt:row.created_at,
+        description:row.description||'',isOverdue:row.start_date<todayKey};
+    });
+
+    var checksMap={},autolabChecksMap={};
+    (checkRes.data||[]).forEach(function(row){
+      if(row.type==='routine') checksMap[row.item_key]={checked:!!row.checked,completedDate:row.completed_date||''};
+      else autolabChecksMap['autolab_'+row.item_key]={checked:!!row.checked,completedDate:row.completed_date||''};
+    });
+
+    var commentsMap={};
+    (commentRes.data||[]).forEach(function(row){
+      var iid=String(row.task_id);
+      if(!commentsMap[iid]) commentsMap[iid]=[];
+      commentsMap[iid].push({id:String(row.id),itemId:iid,author:row.author,text:row.text,createdAt:row.created_at});
+    });
+
+    data._checks=checksMap;
+    data._autolabChecks=autolabChecksMap;
+    data._autolabComments=commentsMap;
+
+    allData=data; checks=checksMap; autolabChecks=autolabChecksMap;
+    render();
+    if(currentTab.startsWith('matrix-')) renderMatrix(currentTab.replace('matrix-',''));
+    if(currentTab==='history') renderHistory();
+    if(currentTab==='routine') renderRoutine();
+  } catch(err){
+    document.getElementById('content').innerHTML='<div class="loading" style="color:#FC5555">오류: '+(err.message||err)+'</div>';
+  }
+}
+
+async function upsertCheck(type,itemKey,checked,completedDate){
+  var res=await _sb.from('biz_check').upsert(
+    {type:type,item_key:itemKey,checked:checked,completed_date:completedDate||''},
+    {onConflict:'item_key'}
+  );
+  if(res.error) showToast('체크 저장 실패');
+}
+
+// =============================================
+// 대시보드
+// =============================================
+function _buildPersonCardHtml(person,key){
+  var autolab=allData._autolab||[];
+  var personItems=autolab.filter(function(item){return item.person===person&&shouldShowAutolab(item,key)&&(showUnclassified||item.priority!=='');});
+  var displayItems=showDone?personItems:personItems.filter(function(i){return !(autolabChecks[alKey(i)]||{}).checked;});
+  displayItems.sort(function(a,b){
+    var pa=PRIORITY_ORDER[a.priority];if(pa==null)pa=4;
+    var pb=PRIORITY_ORDER[b.priority];if(pb==null)pb=4;
+    if(pa!==pb) return pa-pb;
+    var ad=a.dueDate||a.dateKey, bd=b.dueDate||b.dateKey;
+    if(ad<bd) return -1;
+    if(ad>bd) return 1;
+    return 0;
+  });
+  var totalCount=personItems.length;
+  var doneCount=personItems.filter(function(i){return !!(autolabChecks[alKey(i)]||{}).checked;}).length;
+  var overdueCount=personItems.filter(function(i){return i.dateKey<key&&!(autolabChecks[alKey(i)]||{}).checked;}).length;
+  var pc=getPersonColor(person);
+  var pct=totalCount?Math.round(doneCount/totalCount*100):0;
+  var h='<div class="person-autolab-card" data-person="'+person+'">';
+  h+='<div class="person-autolab-header">';
+  h+='<div class="person-id"><span class="person-autolab-name">'+person+'</span></div>';
+  h+='<div class="person-meta">';
+  if(overdueCount>0) h+='<span class="tag tag-danger">이월 '+overdueCount+'</span>';
+  if(totalCount>0) h+='<span class="person-count"><b>'+doneCount+'</b><span class="person-count-sep">/</span>'+totalCount+'</span>';
+  h+='</div></div>';
+  h+='<div class="person-progress"><div class="person-progress-bar" style="width:'+pct+'%;background:var(--brand)"></div></div>';
+  h+='<div class="person-autolab-body">';
+  if(displayItems.length===0){
+    h+='<div style="font-size:12px;color:#C9CDD4;padding:8px 0;text-align:center">'+(showDone?'오늘 공통업무 없음':'미완료 업무 없음')+'</div>';
+  } else {
+    displayItems.forEach(function(item){
+      var info=autolabChecks[alKey(item)]||{};
+      var done=!!info.checked,isOverdue=item.dueDate?(item.dueDate<key):(item.dateKey<key);
+      var dueDiff=getDueDiff(item.dueDate);
+      var isDueSoon=dueDiff!==null&&dueDiff>=0&&dueDiff<=3&&!done;
+      h+='<div class="autolab-item'+(isOverdue&&!done?' overdue':isDueSoon?' due-soon':'')+(done?' done':'')+'">';
+      h+='<div class="autolab-check-area">';
+      h+='<div class="checkbox'+(done?' checked':'')+'" onclick="toggleAutolabCheck(\''+item.id+'\')">'+(done?'✓':'')+'</div>';
+      h+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openAutolabDetailModal(\''+item.id+'\')">';
+      h+='<div class="autolab-task-text">'+item.task+'</div>';
+      h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">';
+      if(isOverdue&&!done&&!item.dueDate) h+='<span class="overdue-badge">이월</span>';
+      if(done) h+='<span class="done-badge">완료</span>';
+      h+=priorityTagHtml(item.priority);
+      h+=itemDateHtml(item);
+      if(item.dueDate) h+=dueBadgeHtml(item.dueDate);
+      h+='</div></div></div>';
+      h+='<button class="autolab-action-btn del" onclick="deleteDashboardAutolab(\''+item.id+'\')">✕</button>';
+      h+='</div>';
+    });
+  }
+  h+='</div></div>';
+  return h;
+}
+function render(){
+  var key=dk(curDate);
+  document.getElementById('date-label').textContent=dDisp(curDate);
+  var autolab=allData._autolab||[];
+  var html='';
+
+  html+='<div class="person-autolab-grid">';
+  PERSONS.forEach(function(person){ html+=_buildPersonCardHtml(person,key); });
+  html+='</div>';
+
+  html+=routineDueHtml(key);
+
+  document.getElementById('content').innerHTML=html;
+}
+
+// =============================================
+// 업무 히스토리
+// =============================================
+var historyPerson='정희진';
+var historyPeriod='week';
+var historyShowDone={};
+
+function renderHistory(){
+  var autolab=allData._autolab||[];
+  var today=new Date(); today.setHours(0,0,0,0);
+  var todayKey=dk(today);
+  var startDate=new Date(today),endDate=new Date(today);
+  if(historyPeriod==='week'){
+    var day=today.getDay();
+    startDate.setDate(today.getDate()-(day===0?6:day-1));
+  } else if(historyPeriod==='lastweek'){
+    var day2=today.getDay();
+    startDate.setDate(today.getDate()-(day2===0?13:day2+6));
+    endDate.setDate(startDate.getDate()+6);
+  } else if(historyPeriod==='month'){
+    startDate.setDate(1);
+  } else if(historyPeriod==='all'){
+    startDate=new Date(2020,0,1);
+  }
+  var startKey=dk(startDate),endKey=dk(endDate);
+  var items=autolab.filter(function(i){return i.person===historyPerson&&i.dateKey>=startKey&&i.dateKey<=endKey;});
+  var groups={};
+  items.forEach(function(item){var k=item.dateKey;if(!groups[k])groups[k]=[];groups[k].push(item);});
+  var dateKeys=Object.keys(groups).sort().reverse();
+
+  var html='<div class="history-wrap">';
+  html+='<div class="history-toolbar">';
+  html+='<span style="font-size:13px;font-weight:700">업무 히스토리</span>';
+  html+='<select onchange="historyPerson=this.value;renderHistory()">';
+  PERSONS.forEach(function(p){html+='<option value="'+p+'"'+(historyPerson===p?' selected':'')+'>'+p+'</option>';});
+  html+='</select>';
+  html+='<select onchange="historyPeriod=this.value;renderHistory()">';
+  [['today','오늘'],['week','이번 주'],['lastweek','지난 주'],['month','이번 달'],['all','전체']].forEach(function(opt){
+    html+='<option value="'+opt[0]+'"'+(historyPeriod===opt[0]?' selected':'')+'>'+opt[1]+'</option>';
+  });
+  html+='</select>';
+  html+='</div><div class="history-body">';
+
+  if(dateKeys.length===0){
+    html+='<div style="text-align:center;padding:40px;color:#8A8F96">해당 기간에 업무가 없어요</div>';
+  } else {
+    dateKeys.forEach(function(dateKey){
+      var dayItems=groups[dateKey];
+      var doneItems=dayItems.filter(function(i){return !!(autolabChecks[alKey(i)]||{}).checked;});
+      var undoneItems=dayItems.filter(function(i){return !(autolabChecks[alKey(i)]||{}).checked;});
+      var d=new Date(dateKey); d.setHours(12);
+      var dateLabel=(d.getMonth()+1)+'월 '+d.getDate()+'일('+DAYS[d.getDay()]+')';
+      if(dateKey===todayKey) dateLabel='오늘 — '+dateLabel;
+      html+='<div class="history-date-group">';
+      html+='<div class="history-date-label">'+dateLabel+' ('+dayItems.length+'건)</div>';
+      undoneItems.forEach(function(item){
+        html+='<div class="history-item">';
+        html+='<div class="checkbox" style="cursor:pointer;flex-shrink:0" onclick="toggleAutolabCheckHistory(\''+item.id+'\',\''+dateKey+'\')"></div>';
+        html+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openAutolabDetailModal(\''+item.id+'\')">';
+        html+='<div class="history-task-text">'+item.task+'</div>';
+        html+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">'+priorityBadgeHtml(item.priority)+itemDateHtml(item)+(item.dueDate?dueBadgeHtml(item.dueDate):'')+'</div></div>';
+        html+='</div>';
+      });
+      if(doneItems.length>0){
+        var isOpen=historyShowDone[dateKey]!==false;
+        html+='<div class="history-done-toggle" onclick="toggleHistoryDone(\''+dateKey+'\')">';
+        html+=(isOpen?'▼':'▶')+' 완료된 업무 '+doneItems.length+'건</div>';
+        if(isOpen){
+          doneItems.forEach(function(item){
+            var info=autolabChecks[alKey(item)]||{};
+            html+='<div class="history-item done">';
+            html+='<div class="checkbox checked" style="cursor:pointer;flex-shrink:0" onclick="toggleAutolabCheckHistory(\''+item.id+'\',\''+dateKey+'\')">✓</div>';
+            html+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openAutolabDetailModal(\''+item.id+'\')">';
+            html+='<div class="history-task-text">'+item.task+'</div>';
+            html+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">';
+            html+=priorityBadgeHtml(item.priority)+itemDateHtml(item);
+            if(item.dueDate) html+=dueBadgeHtml(item.dueDate);
+            if(info.completedDate) html+='<span style="font-size:12px;color:#1B8E4D;font-weight:500">✓ '+info.completedDate+'</span>';
+            html+='</div></div></div>';
+          });
+        }
+      }
+      html+='</div>';
+    });
+  }
+  html+='</div></div>';
+  document.getElementById('history-content').innerHTML=html;
+}
+
+function toggleHistoryDone(dateKey){historyShowDone[dateKey]=historyShowDone[dateKey]===false?true:false;renderHistory();}
+
+function toggleAutolabCheckHistory(id,dateKey){
+  var key='autolab_'+String(id);
+  var current=(autolabChecks[key]||{}).checked;
+  var newChecked=!current;
+  autolabChecks[key]={checked:newChecked,completedDate:newChecked?dateKey:''};
+  renderHistory();
+  upsertCheck('autolab',String(id),newChecked,newChecked?dateKey:'');
+}
+
+// =============================================
+// 아이젠하워 매트릭스
+// =============================================
+var matrixAddingIn={};
+var matrixConfirming={};
+
+function renderMatrix(person){
+  var autolab=allData._autolab||[];
+  var personItems=autolab.filter(function(i){return i.person===person&&shouldShowAutolabMatrix(i);});
+  var key=dk(curDate);
+  var quadrants={DO:[],SCHEDULE:[],DELEGATE:[],ELIMINATE:[],'':[]} ;
+  personItems.forEach(function(item){var q=item.priority||'';if(!quadrants[q])quadrants[q]=[];quadrants[q].push(item);});
+
+  function quadHtml(type,title,items){
+    var headerColor={DO:'#C8392E',SCHEDULE:'#0A6FB5',DELEGATE:'#8A6D00',ELIMINATE:'#6D727A'}[type]||'#46494F';
+    var h='<div class="matrix-cell m-'+type+'" id="mq-'+person+'-'+type+'" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,\''+person+'\',\''+type+'\')">';
+    h+='<div class="matrix-cell-header">'+title;
+    h+='<button class="matrix-add-btn" style="color:'+headerColor+'" onclick="startMatrixAdd(\''+person+'\',\''+type+'\')">+ 추가</button>';
+    h+='</div><div class="matrix-cell-body">';
+    if(matrixAddingIn[person]===type){
+      h+='<div class="matrix-add-form" id="maform-'+person+'-'+type+'">';
+      h+='<input type="text" id="ma-task-'+person+'-'+type+'" placeholder="할일 내용" onkeydown="matrixAddKeydown(event,\''+person+'\',\''+type+'\')">';
+      h+='<div style="display:flex;gap:5px"><label style="flex:1;display:flex;align-items:center;gap:3px"><span style="font-size:10px;color:#6D727A;font-weight:600;white-space:nowrap">시작</span><input type="date" id="ma-start-'+person+'-'+type+'" style="flex:1;min-width:0;font-size:12px;padding:4px 5px;border:1px solid #C9CDD4;border-radius:8px;background:#fff"></label><label style="flex:1;display:flex;align-items:center;gap:3px"><span style="font-size:10px;color:#FC5555;font-weight:600;white-space:nowrap">마감</span><input type="date" id="ma-due-'+person+'-'+type+'" style="flex:1;min-width:0;font-size:12px;padding:4px 5px;border:1px solid #C9CDD4;border-radius:8px;background:#fff"></label></div>';
+      h+='<div class="matrix-add-form-btns">';
+      h+='<button class="matrix-confirm-btn"'+(matrixConfirming[person]?' disabled':'')+' onclick="confirmMatrixAdd(\''+person+'\',\''+type+'\')">'+(matrixConfirming[person]?'저장 중...':'추가')+'</button>';
+      h+='<button onclick="cancelMatrixAdd(\''+person+'\')">취소</button>';
+      h+='</div></div>';
+    }
+    if(!showDone) items=items.filter(function(i){return !(autolabChecks[alKey(i)]||{}).checked;});
+    if(!items.length&&matrixAddingIn[person]!==type){
+      h+='<div class="matrix-empty">없음<br><span style="font-size:10px">여기에 드래그하거나 + 추가</span></div>';
+    }
+    items.forEach(function(item){
+      var info=autolabChecks[alKey(item)]||{};
+      var done=!!info.checked,isOverdue=(item.dueDate?(item.dueDate<key):(item.dateKey<key))&&!done;
+      h+='<div class="matrix-item'+(done?' done':'')+(isOverdue?' matrix-overdue':'')+'" draggable="true" ondragstart="onDragStart(event,\''+item.id+'\')" ondragend="onDragEnd(event)">';
+      h+='<div class="checkbox'+(done?' checked':'')+'" onclick="toggleAutolabCheck(\''+item.id+'\')">'+(done?'✓':'')+'</div>';
+      h+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openAutolabDetailModal(\''+item.id+'\')">';
+      h+='<div class="matrix-task-text">'+item.task+'</div>';
+      h+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:2px">';
+      if(isOverdue&&!item.dueDate) h+='<span class="overdue-badge">이월</span>';
+      if(done) h+='<span class="done-badge">완료</span>';
+      h+=itemDateHtml(item);
+      if(item.dueDate) h+=dueBadgeHtml(item.dueDate);
+      h+='</div></div>';
+      h+='<button class="autolab-action-btn del" onclick="event.stopPropagation();deleteMatrixItem(\''+item.id+'\',\''+person+'\')">✕</button>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+    return h;
+  }
+
+  var html='<div class="matrix-wrap">';
+  html+='<div class="matrix-head"><div class="matrix-title">'+person+' · 아이젠하워 매트릭스</div><div class="matrix-axis-note">세로 ↑ 중요도 · 가로 → 긴급도</div></div>';
+  html+='<div class="matrix-grid">';
+  html+=quadHtml('DO','Do First · 긴급+중요',quadrants['DO']||[]);
+  html+=quadHtml('SCHEDULE','Schedule · 중요+안긴급',quadrants['SCHEDULE']||[]);
+  html+=quadHtml('DELEGATE','Delegate · 긴급+안중요',quadrants['DELEGATE']||[]);
+  html+=quadHtml('ELIMINATE','Eliminate · 둘다아님',quadrants['ELIMINATE']||[]);
+  html+='</div>';
+
+  var unclassified=quadrants['']||[];
+  if(!showDone) unclassified=unclassified.filter(function(i){return !(autolabChecks[alKey(i)]||{}).checked;});
+  html+='<div class="unclassified-section" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,\''+person+'\',\'\')">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  html+='<div style="font-size:12px;font-weight:700;color:#6D727A">미분류 — 4분면으로 드래그하거나 추가해서 배치하세요</div>';
+  html+='<button class="matrix-add-btn" style="color:#6D727A;border:1px solid #C9CDD4;padding:3px 10px;border-radius:8px;font-size:11px;cursor:pointer" onclick="startMatrixAdd(\''+person+'\',\'\')">+ 추가</button>';
+  html+='</div>';
+  if(matrixAddingIn[person]===''){
+    html+='<div class="matrix-add-form" style="margin-bottom:8px">';
+    html+='<input type="text" id="ma-task-'+person+'-unclass" placeholder="할일 내용" onkeydown="matrixAddKeydown(event,\''+person+'\',\'\')">';
+    html+='<div style="display:flex;gap:5px"><label style="flex:1;display:flex;align-items:center;gap:3px"><span style="font-size:10px;color:#6D727A;font-weight:600;white-space:nowrap">시작</span><input type="date" id="ma-start-'+person+'-unclass" style="flex:1;min-width:0;font-size:12px;padding:4px 5px;border:1px solid #C9CDD4;border-radius:8px;background:#fff"></label><label style="flex:1;display:flex;align-items:center;gap:3px"><span style="font-size:10px;color:#FC5555;font-weight:600;white-space:nowrap">마감</span><input type="date" id="ma-due-'+person+'-unclass" style="flex:1;min-width:0;font-size:12px;padding:4px 5px;border:1px solid #C9CDD4;border-radius:8px;background:#fff"></label></div>';
+    html+='<div class="matrix-add-form-btns">';
+    html+='<button class="matrix-confirm-btn"'+(matrixConfirming[person]?' disabled':'')+' onclick="confirmMatrixAdd(\''+person+'\',\'\')">'+(matrixConfirming[person]?'저장 중...':'추가')+'</button>';
+    html+='<button onclick="cancelMatrixAdd(\''+person+'\')">취소</button>';
+    html+='</div></div>';
+  }
+  if(unclassified.length===0&&matrixAddingIn[person]!==''){
+    html+='<div style="font-size:12px;color:#C9CDD4;text-align:center;padding:12px">모두 분류됐어요</div>';
+  } else {
+    if(unclassified.length>0) html+='<div class="drag-hint">항목을 드래그해서 위 매트릭스에 배치하세요</div>';
+    unclassified.forEach(function(item){
+      var info=autolabChecks[alKey(item)]||{};
+      var done=!!info.checked;
+      html+='<div class="unclassified-item'+(done?' done':'')+'" draggable="true" id="di-'+item.id+'" ondragstart="onDragStart(event,\''+item.id+'\')" ondragend="onDragEnd(event)">';
+      html+='<span style="font-size:16px;cursor:grab;color:#8A8F96">⠿</span>';
+      html+='<div class="checkbox'+(done?' checked':'')+'" style="cursor:pointer;flex-shrink:0" onclick="toggleAutolabCheck(\''+item.id+'\')">'+(done?'✓':'')+'</div>';
+      html+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openAutolabDetailModal(\''+item.id+'\')">';
+      html+='<div style="font-size:12px;color:#2F3238">'+item.task+'</div>';
+      html+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:2px"><span style="font-size:10px;color:#8A8F96">등록 '+item.dateKey+'</span>';
+      if(item.dueDate) html+=dueBadgeHtml(item.dueDate);
+      html+='</div></div>';
+      html+='<button class="autolab-action-btn del" onclick="event.stopPropagation();deleteMatrixItem(\''+item.id+'\',\''+person+'\')">✕</button>';
+      html+='</div>';
+    });
+  }
+  html+='</div></div>';
+  document.getElementById('matrix-content-'+person).innerHTML=html;
+  if(matrixAddingIn[person]!==undefined){
+    var inputId=matrixAddingIn[person]===''?'ma-task-'+person+'-unclass':'ma-task-'+person+'-'+matrixAddingIn[person];
+    var inp=document.getElementById(inputId);
+    if(inp) setTimeout(function(){inp.focus();},50);
+  }
+}
+
+function startMatrixAdd(person,quadrant){matrixAddingIn[person]=quadrant;renderMatrix(person);}
+function cancelMatrixAdd(person){delete matrixAddingIn[person];renderMatrix(person);}
+function matrixAddKeydown(e,person,quadrant){if(e.key==='Enter')confirmMatrixAdd(person,quadrant);if(e.key==='Escape')cancelMatrixAdd(person);}
+
+async function confirmMatrixAdd(person,quadrant){
+  if(matrixConfirming[person]) return;
+  var inputId=quadrant===''?'ma-task-'+person+'-unclass':'ma-task-'+person+'-'+quadrant;
+  var startId=quadrant===''?'ma-start-'+person+'-unclass':'ma-start-'+person+'-'+quadrant;
+  var dueId=quadrant===''?'ma-due-'+person+'-unclass':'ma-due-'+person+'-'+quadrant;
+  var taskEl=document.getElementById(inputId),startEl=document.getElementById(startId),dueEl=document.getElementById(dueId);
+  if(!taskEl) return;
+  var task=taskEl.value.trim(),startDate=startEl&&startEl.value?startEl.value:dk(new Date()),dueDate=dueEl?dueEl.value:'';
+  if(!task){showToast('할일을 입력하세요');return;}
+  var createdAt=dk(new Date());
+  matrixConfirming[person]=true; renderMatrix(person);
+  try {
+    var res=await _sb.from('biz_task').insert({
+      person:person,task:task,priority:quadrant,start_date:startDate,
+      due_date:dueDate||null,created_at:createdAt,description:'',
+    }).select().single();
+    if(res.error) throw res.error;
+    matrixConfirming[person]=false;
+    allData._autolab=allData._autolab||[];
+    allData._autolab.push({id:String(res.data.id),dateKey:startDate,task:task,person:person,priority:quadrant,dueDate:dueDate,createdAt:createdAt,isOverdue:false,description:''});
+    delete matrixAddingIn[person];
+    renderMatrix(person); showToast('추가됐어요!');
+  } catch(err){
+    matrixConfirming[person]=false; renderMatrix(person); showToast('추가 실패: '+(err.message||err));
+  }
+}
+
+async function deleteMatrixItem(id,person){
+  if(!confirm('삭제할까요?')) return;
+  var res=await _sb.from('biz_task').delete().eq('id',parseInt(id));
+  if(res.error){showToast('삭제 실패');return;}
+  await _sb.from('biz_check').delete().eq('type','autolab').eq('item_key',String(id));
+  allData._autolab=(allData._autolab||[]).filter(function(i){return String(i.id)!==String(id);});
+  delete autolabChecks['autolab_'+String(id)];
+  renderMatrix(person); showToast('삭제됐어요!');
+}
+
+async function deleteDashboardAutolab(id){
+  if(!confirm('삭제할까요?')) return;
+  var res=await _sb.from('biz_task').delete().eq('id',parseInt(id));
+  if(res.error){showToast('삭제 실패');return;}
+  await _sb.from('biz_check').delete().eq('type','autolab').eq('item_key',String(id));
+  allData._autolab=(allData._autolab||[]).filter(function(i){return String(i.id)!==String(id);});
+  delete autolabChecks['autolab_'+String(id)];
+  render();
+}
+
+function onDragStart(e,id){dragItemId=id;e.dataTransfer.effectAllowed='move';setTimeout(function(){var el=document.getElementById('di-'+id);if(el)el.classList.add('dragging');},0);}
+function onDragEnd(e){if(dragItemId){var el=document.getElementById('di-'+dragItemId);if(el)el.classList.remove('dragging');}document.querySelectorAll('.matrix-cell.drag-over').forEach(function(el){el.classList.remove('drag-over');});}
+function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';e.currentTarget.classList.add('drag-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onDrop(e,person,priority){
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
+  if(!dragItemId) return;
+  var id=dragItemId; dragItemId=null;
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(id);});
+  if(item){item.priority=priority;renderMatrix(person);}
+  _sb.from('biz_task').update({priority:priority}).eq('id',parseInt(id)).then(function(res){if(res.error)showToast('저장 실패');});
+}
+
+// =============================================
+// 체크 토글
+// =============================================
+function toggleAutolabCheck(id){
+  var key='autolab_'+String(id);
+  var current=(autolabChecks[key]||{}).checked;
+  var newChecked=!current,curKey=dk(curDate);
+  autolabChecks[key]={checked:newChecked,completedDate:newChecked?curKey:''};
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(id);});
+  var cardEl=item&&document.querySelector('.person-autolab-card[data-person="'+item.person+'"]');
+  if(cardEl){var tmp=document.createElement('div');tmp.innerHTML=_buildPersonCardHtml(item.person,curKey);cardEl.parentNode.replaceChild(tmp.firstElementChild,cardEl);}
+  else{render();}
+  if(currentTab.startsWith('matrix-')) renderMatrix(currentTab.replace('matrix-',''));
+  if(currentTab==='history') renderHistory();
+  upsertCheck('autolab',String(id),newChecked,newChecked?curKey:'');
+}
+function toggleRoutineCheck(ruleId,ym){
+  var ck=routineCheckKey(ruleId,ym);
+  var current=(checks[ck]||{}).checked;
+  var newChecked=!current,curKey=dk(new Date());
+  checks[ck]={checked:newChecked,completedDate:newChecked?curKey:''};
+  if(currentTab==='routine') renderRoutine(); else render();
+  upsertCheck('routine',ck,newChecked,newChecked?curKey:'');
+}
+
+function changeDay(d){curDate=new Date(curDate);curDate.setDate(curDate.getDate()+d);render();}
+function goToday(){curDate=new Date();curDate.setHours(0,0,0,0);render();}
+
+function escapeBacktick(str){return (str||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');}
+
+// =============================================
+// 셀현황 (시트 직접 fetch — 읽기 전용, gviz)
+// =============================================
+var CELL_SHEET_ID='1cHfnjE4Aac2DMjFnIJsr0WxHeulkWPo2F0Axqs3qjqs';
+var CELL_SHEET_NAME='셀현황(자동)';
+async function renderCellStatus(){
+  var el=document.getElementById('cells-content');
+  el.innerHTML='<div class="loading"><div class="spinner"></div>셀현황 불러오는 중...</div>';
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  try{
+    var url='https://docs.google.com/spreadsheets/d/'+CELL_SHEET_ID+'/gviz/tq?tqx=out:json&headers=0&sheet='+encodeURIComponent(CELL_SHEET_NAME);
+    var resp=await fetch(url,{cache:'no-store'});
+    var txt=await resp.text();
+    var json=JSON.parse(txt.substring(txt.indexOf('(')+1,txt.lastIndexOf(')')));
+    var rows=(json.table&&json.table.rows)||[];
+    var grid=rows.map(function(r){return (r.c||[]).map(function(c){return c&&c.v!=null?c.v:'';});});
+    if(!grid.length){el.innerHTML='<div style="padding:32px;text-align:center;color:var(--text-secondary)">셀현황 데이터가 없어요</div>';return;}
+    var colCount=0;
+    grid.forEach(function(row){for(var j=0;j<row.length;j++){if(String(row[j]==null?'':row[j]).trim()!=='')colCount=Math.max(colCount,j+1);}});
+    var head=grid[0].slice();
+    if(colCount>0&&String(head[colCount-1]==null?'':head[colCount-1]).trim()===''){head[colCount-1]='합계';}
+    var html='<div style="padding:16px;overflow-x:auto">';
+    html+='<table class="cohort-matrix-table"><thead><tr>';
+    for(var j=0;j<colCount;j++){html+='<th style="'+(j===0?'text-align:left;':'')+'">'+esc(head[j])+'</th>';}
+    html+='</tr></thead><tbody>';
+    for(var i=1;i<grid.length;i++){
+      var row=grid[i];
+      var label=String(row[0]||'').trim();
+      var isSummary=(label==='셀장'||label==='ZONE'||label==='인원');
+      html+='<tr>';
+      for(var j=0;j<colCount;j++){
+        var v=row[j]==null?'':row[j];
+        var style=j===0?'text-align:left;font-weight:600;color:var(--text-secondary);white-space:nowrap':(isSummary?'font-weight:600;color:var(--text-primary)':'color:var(--text-primary)');
+        html+='<td style="'+style+'">'+esc(v)+'</td>';
+      }
+      html+='</tr>';
+    }
+    html+='</tbody></table>';
+    html+='<div style="padding:10px 4px 0;font-size:var(--text-xs);color:var(--text-tertiary)">시트 "셀현황(자동)" 실시간 반영 · 새로고침하면 최신</div>';
+    html+='</div>';
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML='<div style="padding:32px;text-align:center;color:var(--text-secondary)">셀현황을 불러오지 못했어요<br><span style="font-size:12px;color:var(--text-tertiary)">'+esc(e.message||e)+'</span></div>';
+  }
+}
+
+// =============================================
+// 일감 수정 모달
+// =============================================
+var autolabEditId=null;
+function openAutolabEditModal(id){
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(id);});
+  if(!item) return;
+  autolabEditId=id;
+  var info=autolabChecks[alKey(item)]||{};
+  document.getElementById('autolab-modal-sub').textContent='등록일: '+(item.createdAt||item.dateKey);
+  document.getElementById('autolab-modal-task').value=item.task||'';
+  document.getElementById('autolab-modal-person').value=item.person||'';
+  document.getElementById('autolab-modal-priority').value=item.priority||'';
+  document.getElementById('autolab-modal-start').value=item.dateKey||'';
+  document.getElementById('autolab-modal-due').value=item.dueDate||'';
+  document.getElementById('autolab-modal-done').checked=!!info.checked;
+  document.getElementById('autolab-btn-save').textContent='저장';
+  document.getElementById('autolab-btn-save').disabled=false;
+  document.getElementById('autolab-modal-bg').classList.add('open');
+  setTimeout(function(){document.getElementById('autolab-modal-task').focus();},100);
+}
+function closeAutolabModal(){document.getElementById('autolab-modal-bg').classList.remove('open');}
+document.getElementById('autolab-modal-bg').onclick=function(e){if(e.target===this)closeAutolabModal();};
+
+async function saveAutolabEdit(){
+  var task=document.getElementById('autolab-modal-task').value.trim();
+  var person=document.getElementById('autolab-modal-person').value;
+  var priority=document.getElementById('autolab-modal-priority').value;
+  var startDate=document.getElementById('autolab-modal-start').value;
+  var dueDate=document.getElementById('autolab-modal-due').value;
+  var isDone=document.getElementById('autolab-modal-done').checked;
+  if(!task){showToast('내용을 입력하세요');return;}
+  var btn=document.getElementById('autolab-btn-save');
+  btn.textContent='저장 중...'; btn.disabled=true;
+  var editItem=(allData._autolab||[]).find(function(i){return String(i.id)===String(autolabEditId);});
+  var prevDone=editItem?!!(autolabChecks[alKey(editItem)]||{}).checked:false;
+  try {
+    var updateData={task:task,priority:priority,due_date:dueDate||null};
+    if(person) updateData.person=person;
+    if(startDate) updateData.start_date=startDate;
+    var res=await _sb.from('biz_task').update(updateData).eq('id',parseInt(autolabEditId));
+    if(res.error) throw res.error;
+    var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(autolabEditId);});
+    if(item){item.task=task;if(person)item.person=person;item.priority=priority;if(startDate)item.dateKey=startDate;item.dueDate=dueDate||'';}
+    if(isDone!==prevDone){
+      var cd=isDone?dk(new Date()):'';
+      autolabChecks['autolab_'+String(autolabEditId)]={checked:isDone,completedDate:cd};
+      await upsertCheck('autolab',String(autolabEditId),isDone,cd);
+    }
+    closeAutolabModal();
+    render();
+    if(currentTab.startsWith('matrix-')) renderMatrix(currentTab.replace('matrix-',''));
+    if(currentTab==='history') renderHistory();
+    showToast('저장됐어요!');
+  } catch(err){
+    showToast('오류: '+(err.message||err));
+  }
+  btn.textContent='저장'; btn.disabled=false;
+}
+
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+
+// =============================================
+// 상세 모달
+// =============================================
+var detailModalId=null;
+function openAutolabDetailModal(id){
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(id);});
+  if(!item) return;
+  detailModalId=id;
+  var info=autolabChecks[alKey(item)]||{};
+  var done=!!info.checked;
+  // ensure view mode
+  exitDetailEdit(true);
+  document.getElementById('detail-modal-title').textContent=item.task;
+  var sub='담당자: '+item.person+'  ·  등록: '+item.dateKey;
+  if(item.dueDate){
+    var diff=getDueDiff(item.dueDate);
+    var dLabel,dColor;
+    if(diff<0){dLabel=(Math.abs(diff))+'일 지연';dColor='#C8392E';}
+    else if(diff===0){dLabel='오늘 마감';dColor='#8A6D00';}
+    else if(diff<=3){dLabel='D-'+diff;dColor='#8A6D00';}
+    else{dLabel='D-'+diff;dColor='var(--text-tertiary)';}
+    sub+='  ·  <span style="color:'+dColor+';font-weight:600">'+dLabel+'</span>';
+  }
+  if(done) sub+='  ·  <span style="color:#1B8E4D;font-weight:500">완료</span>';
+  document.getElementById('detail-modal-sub').innerHTML=sub;
+  var badges='<div style="display:flex;gap:6px;flex-wrap:wrap">'+priorityBadgeHtml(item.priority);
+  if(item.dueDate) badges+=dueBadgeHtml(item.dueDate);
+  if(done) badges+='<span class="done-badge">완료</span>';
+  badges+='</div>';
+  document.getElementById('detail-modal-info').innerHTML=badges;
+  var descEl=document.getElementById('dm-desc-view');
+  if(descEl) descEl.textContent=item.description||'';
+  document.getElementById('detail-modal-desc').value=item.description||'';
+  document.getElementById('detail-modal-bg').classList.add('open');
+  var cachedComments=(allData._autolabComments||{})[String(id)]||[];
+  renderDetailComments(cachedComments);
+}
+function _renderOneComment(c){
+  var t=(c.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return '<div id="comment-'+c.id+'" style="background:var(--bg-subtle);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:6px;border:1px solid var(--border-subtle)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--text-primary)">'+c.author+'</span>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<span style="font-size:11px;color:var(--text-tertiary)">'+c.createdAt+'</span>'
+    +'<button onclick="editDetailComment(\''+c.id+'\')" style="font-size:11px;border:none;background:none;cursor:pointer;padding:2px;color:#8A8F96" title="수정">✏</button>'
+    +'<button onclick="deleteDetailComment(\''+c.id+'\',\''+c.itemId+'\')" style="font-size:11px;border:none;background:none;cursor:pointer;padding:2px;color:#C9CDD4" title="삭제">✕</button>'
+    +'</div></div>'
+    +'<div id="comment-text-'+c.id+'" style="font-size:13px;color:var(--text-primary);line-height:1.5">'+t+'</div>'
+    +'</div>';
+}
+function renderDetailComments(comments){
+  var el=document.getElementById('detail-modal-comments');
+  if(!el) return;
+  if(!comments||!comments.length){el.innerHTML='';return;}
+  var h='';comments.forEach(function(c){h+=_renderOneComment(c);});el.innerHTML=h;
+}
+
+async function submitDetailComment(){
+  var author=document.getElementById('detail-comment-author').value;
+  var text=document.getElementById('detail-comment-input').value.trim();
+  if(!text){showToast('댓글을 입력하세요');return;}
+  document.getElementById('detail-comment-input').value='';
+  var now=new Date();
+  var createdAt=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  try {
+    var res=await _sb.from('biz_comment').insert({task_id:String(detailModalId),author:author,text:text,created_at:createdAt}).select().single();
+    if(res.error) throw res.error;
+    var comment={id:String(res.data.id),itemId:String(detailModalId),author:author,text:text,createdAt:createdAt};
+    var el=document.getElementById('detail-modal-comments');
+    if(el){el.insertAdjacentHTML('beforeend',_renderOneComment(comment));el.lastElementChild.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    if(!allData._autolabComments) allData._autolabComments={};
+    var iid=String(detailModalId);
+    if(!allData._autolabComments[iid]) allData._autolabComments[iid]=[];
+    allData._autolabComments[iid].push(comment);
+    showToast('댓글 등록됐어요!');
+  } catch(err){
+    showToast('오류: '+(err.message||err));
+  }
+}
+
+function editDetailComment(commentId){
+  var textEl=document.getElementById('comment-text-'+commentId);
+  if(!textEl) return;
+  var cur=textEl.textContent;
+  var esc=cur.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  textEl.innerHTML='<input type="text" id="edit-input-'+commentId+'" value="'+esc+'" style="width:100%;font-size:13px;border:1px solid #FFB598;border-radius:8px;padding:5px 8px;box-sizing:border-box;outline:none" onkeydown="if(event.key===\'Enter\'&&!event.isComposing)saveEditComment(\''+commentId+'\')">'
+    +'<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px">'
+    +'<button onclick="saveEditComment(\''+commentId+'\')" style="font-size:12px;padding:4px 12px;border-radius:8px;border:none;background:#FE5B1B;color:#fff;cursor:pointer">저장</button>'
+    +'<button onclick="cancelEditComment(\''+commentId+'\',\''+esc+'\')" style="font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid #C9CDD4;cursor:pointer;background:#fff">취소</button>'
+    +'</div>';
+  var inp=document.getElementById('edit-input-'+commentId);if(inp){inp.focus();inp.select();}
+}
+function cancelEditComment(commentId,original){
+  var textEl=document.getElementById('comment-text-'+commentId);
+  if(textEl) textEl.textContent=original.replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+}
+
+async function saveEditComment(commentId){
+  var inp=document.getElementById('edit-input-'+commentId);if(!inp) return;
+  var newText=inp.value.trim();if(!newText) return;
+  inp.disabled=true;
+  try {
+    var res=await _sb.from('biz_comment').update({text:newText}).eq('id',parseInt(commentId));
+    if(res.error) throw res.error;
+    var textEl=document.getElementById('comment-text-'+commentId);
+    if(textEl) textEl.textContent=newText;
+    var cs=(allData._autolabComments||{})[String(detailModalId)]||[];
+    var c=cs.find(function(x){return x.id===String(commentId);});
+    if(c) c.text=newText;
+    showToast('댓글 수정됐어요!');
+  } catch(err){
+    inp.disabled=false; showToast('수정 실패');
+  }
+}
+
+async function deleteDetailComment(commentId,itemId){
+  if(!confirm('댓글을 삭제할까요?')) return;
+  var res=await _sb.from('biz_comment').delete().eq('id',parseInt(commentId));
+  if(res.error){showToast('삭제 실패');return;}
+  var el=document.getElementById('comment-'+commentId);if(el) el.remove();
+  var ctn=document.getElementById('detail-modal-comments');
+
+  var iid=String(itemId);
+  if(allData._autolabComments&&allData._autolabComments[iid])
+    allData._autolabComments[iid]=allData._autolabComments[iid].filter(function(c){return c.id!==String(commentId);});
+  showToast('댓글 삭제됐어요!');
+}
+
+function closeDetailModal(){
+  exitDetailEdit(true);
+  document.getElementById('detail-modal-bg').classList.remove('open');
+}
+document.getElementById('detail-modal-bg').onclick=function(e){if(e.target===this)closeDetailModal();};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeAutolabModal();closeDetailModal();closeRoutineModal();}});
+function editFromDetail(){if(detailModalId)enterDetailEdit();}
+
+function enterDetailEdit(){
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(detailModalId);});
+  if(!item) return;
+  var info=autolabChecks[alKey(item)]||{};
+  document.getElementById('dm-task-input').value=item.task||'';
+  document.getElementById('dm-person-select').value=item.person||'';
+  document.getElementById('dm-priority-select').value=item.priority||'';
+  document.getElementById('dm-start-input').value=item.dateKey||'';
+  document.getElementById('dm-due-input').value=item.dueDate||'';
+  document.getElementById('dm-done-check').checked=!!info.checked;
+  document.getElementById('detail-modal-desc').value=item.description||'';
+  document.getElementById('dm-view-header').style.display='none';
+  document.getElementById('dm-edit-header').style.display='';
+  document.getElementById('dm-desc-view').style.display='none';
+  document.getElementById('dm-desc-edit').style.display='';
+  document.getElementById('detail-modal-info').style.display='none';
+  document.getElementById('dm-edit-btn').style.display='none';
+  document.getElementById('dm-cancel-btn').textContent='취소';
+  document.getElementById('dm-cancel-btn').style.display='';
+  document.getElementById('dm-cancel-btn').setAttribute('onclick','exitDetailEdit()');
+  document.getElementById('dm-save-btn').style.display='';
+  setTimeout(function(){document.getElementById('dm-task-input').focus();},80);
+}
+
+function exitDetailEdit(silent){
+  document.getElementById('dm-view-header').style.display='';
+  document.getElementById('dm-edit-header').style.display='none';
+  document.getElementById('dm-desc-view').style.display='';
+  document.getElementById('dm-desc-edit').style.display='none';
+  document.getElementById('detail-modal-info').style.display='';
+  document.getElementById('dm-edit-btn').style.display='';
+  document.getElementById('dm-cancel-btn').textContent='닫기';
+  document.getElementById('dm-cancel-btn').style.display='none';
+  document.getElementById('dm-cancel-btn').setAttribute('onclick','closeDetailModal()');
+  document.getElementById('dm-save-btn').style.display='none';
+}
+
+async function saveDetailEdit(){
+  var task=document.getElementById('dm-task-input').value.trim();
+  var person=document.getElementById('dm-person-select').value;
+  var priority=document.getElementById('dm-priority-select').value;
+  var startDate=document.getElementById('dm-start-input').value;
+  var dueDate=document.getElementById('dm-due-input').value;
+  var isDone=document.getElementById('dm-done-check').checked;
+  var desc=document.getElementById('detail-modal-desc').value;
+  if(!task){showToast('내용을 입력하세요');return;}
+  var btn=document.getElementById('dm-save-btn');
+  btn.textContent='저장 중...'; btn.disabled=true;
+  var item=(allData._autolab||[]).find(function(i){return String(i.id)===String(detailModalId);});
+  var prevDone=item?!!(autolabChecks[alKey(item)]||{}).checked:false;
+  try {
+    var updateData={task:task,priority:priority,due_date:dueDate||null,description:desc};
+    if(person) updateData.person=person;
+    if(startDate) updateData.start_date=startDate;
+    var res=await _sb.from('biz_task').update(updateData).eq('id',parseInt(detailModalId));
+    if(res.error) throw res.error;
+    if(item){item.task=task;if(person)item.person=person;item.priority=priority;if(startDate)item.dateKey=startDate;item.dueDate=dueDate||'';item.description=desc;}
+    if(isDone!==prevDone){
+      var cd=isDone?dk(new Date()):'';
+      autolabChecks['autolab_'+String(detailModalId)]={checked:isDone,completedDate:cd};
+      await upsertCheck('autolab',String(detailModalId),isDone,cd);
+    }
+    exitDetailEdit();
+    // refresh view mode display
+    document.getElementById('detail-modal-title').textContent=task;
+    var sub='담당자: '+person+'  ·  등록: '+(item?item.dateKey:'');
+    if(dueDate){
+      var diff=getDueDiff(dueDate);
+      var dLabel,dColor;
+      if(diff<0){dLabel=(Math.abs(diff))+'일 지연';dColor='#C8392E';}
+      else if(diff===0){dLabel='오늘 마감';dColor='#8A6D00';}
+      else if(diff<=3){dLabel='D-'+diff;dColor='#8A6D00';}
+      else{dLabel='D-'+diff;dColor='var(--text-tertiary)';}
+      sub+='  ·  <span style="color:'+dColor+';font-weight:600">'+dLabel+'</span>';
+    }
+    if(isDone) sub+='  ·  <span style="color:#1B8E4D;font-weight:500">완료</span>';
+    document.getElementById('detail-modal-sub').innerHTML=sub;
+    var badges='<div style="display:flex;gap:6px;flex-wrap:wrap">'+priorityBadgeHtml(priority);
+    if(dueDate) badges+=dueBadgeHtml(dueDate);
+    if(isDone) badges+='<span class="done-badge">완료</span>';
+    badges+='</div>';
+    document.getElementById('detail-modal-info').innerHTML=badges;
+    var descEl=document.getElementById('dm-desc-view');
+    if(descEl) descEl.textContent=desc;
+    render();
+    if(currentTab.startsWith('matrix-')) renderMatrix(currentTab.replace('matrix-',''));
+    if(currentTab==='history') renderHistory();
+    showToast('저장됐어요!');
+  } catch(err){
+    showToast('오류: '+(err.message||err));
+  }
+  btn.textContent='저장'; btn.disabled=false;
+}
+
+document.getElementById('detail-modal-desc').addEventListener('keydown',function(e){
+  if(e.isComposing) return;
+  var ta=this,val=ta.value,pos=ta.selectionStart;
+  var ls=val.lastIndexOf('\n',pos-1)+1;
+  var lt=val.substring(ls,pos);
+  if(e.key===' '&&lt==='-'){
+    e.preventDefault();
+    ta.value=val.substring(0,ls)+'• '+val.substring(pos);
+    ta.selectionStart=ta.selectionEnd=ls+2;
+  } else if(e.key==='Enter'){
+    if(lt==='• '){e.preventDefault();ta.value=val.substring(0,ls)+val.substring(pos);ta.selectionStart=ta.selectionEnd=ls;}
+    else if(lt.startsWith('• ')){e.preventDefault();var ins='\n• ';ta.value=val.substring(0,pos)+ins+val.substring(pos);ta.selectionStart=ta.selectionEnd=pos+ins.length;}
+  }
+});
+
+// =============================================
+// 월간 반복 업무 (스프레드시트 뷰)
+// =============================================
+var routineMonth=new Date(); routineMonth.setDate(1); routineMonth.setHours(0,0,0,0);
+var routineEditId=null;
+var routineSaving=false;
+
+function ymKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function routineCheckKey(ruleId,ym){return 'r'+ruleId+'_'+ym;}
+function lastDayOf(y,m){return new Date(y,m+1,0).getDate();}
+function isWeekendDay(d){return d.getDay()===0||d.getDay()===6;}
+
+// 규칙 → 그 달의 실제 수행일
+function routineDateFor(rule,y,m){
+  var last=lastDayOf(y,m);
+  var day=rule.dayType==='last'?last:Math.min(Math.max(parseInt(rule.dayOfMonth||1,10),1),last);
+  var d=new Date(y,m,day);
+  if(rule.weekendShift==='before'||rule.weekendShift==='after'){
+    var dir=rule.weekendShift==='before'?-1:1;
+    while(isWeekendDay(d)) d.setDate(d.getDate()+dir);
+    if(d.getMonth()!==m){ // 달을 벗어나면 반대 방향으로 되돌린다
+      d=new Date(y,m,day);
+      while(isWeekendDay(d)) d.setDate(d.getDate()-dir);
+    }
+  }
+  return d;
+}
+
+function routineInstancesFor(y,m,includeInactive){
+  var out=[];
+  (allData._routines||[]).forEach(function(r){
+    if(!r.active&&!includeInactive) return;
+    var d=routineDateFor(r,y,m);
+    out.push({rule:r,date:d,day:d.getDate(),dateKey:dk(d),ym:ymKey(new Date(y,m,1))});
+  });
+  out.sort(function(a,b){return a.day-b.day;});
+  return out;
+}
+
+function routineWhenLabel(rule){
+  var base=rule.dayType==='last'?'말일':(rule.dayOfMonth||1)+'일';
+  var sfx=rule.weekendShift==='before'?' ↤주말':rule.weekendShift==='after'?' ↦주말':'';
+  return '매월 '+base+sfx;
+}
+
+function changeRoutineMonth(delta){
+  routineMonth=new Date(routineMonth.getFullYear(),routineMonth.getMonth()+delta,1);
+  renderRoutine();
+}
+function goRoutineThisMonth(){
+  var n=new Date(); routineMonth=new Date(n.getFullYear(),n.getMonth(),1); renderRoutine();
+}
+
+function renderRoutine(){
+  var y=routineMonth.getFullYear(),m=routineMonth.getMonth();
+  var ym=ymKey(routineMonth);
+  var last=lastDayOf(y,m);
+  var inst=routineInstancesFor(y,m);
+  var todayKey=dk(new Date());
+
+  var byDay={};
+  inst.forEach(function(i){ (byDay[i.day]=byDay[i.day]||[]).push(i); });
+
+  var total=inst.length;
+  var done=inst.filter(function(i){return !!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;}).length;
+
+  var html='<div class="routine-toolbar">';
+  html+='<div class="routine-month">';
+  html+='<button onclick="changeRoutineMonth(-1)" aria-label="이전 달">◀</button>';
+  html+='<span class="routine-month-label">'+y+'년 '+(m+1)+'월</span>';
+  html+='<button onclick="changeRoutineMonth(1)" aria-label="다음 달">▶</button>';
+  html+='<button onclick="goRoutineThisMonth()" style="width:auto;padding:0 10px;font-size:11px">이번 달</button>';
+  html+='</div>';
+  html+='<span class="routine-summary">'+(total?('완료 '+done+' / '+total+'건'):'등록된 반복 업무가 없어요')+'</span>';
+  html+='<button class="rt-add-btn" onclick="openRoutineModal(null)">+ 반복 업무 추가</button>';
+  html+='</div>';
+
+  html+='<div style="padding:0 16px;overflow-x:auto">';
+  html+='<table class="cohort-matrix-table routine-table"><thead><tr>';
+  html+='<th class="rt-day-cell">날짜</th>';
+  PERSONS.forEach(function(p){html+='<th>'+p+'</th>';});
+  html+='</tr></thead><tbody>';
+
+  for(var day=1;day<=last;day++){
+    var d=new Date(y,m,day);
+    var dKey=dk(d);
+    var weekend=isWeekendDay(d);
+    var isToday=dKey===todayKey;
+    var dayInst=byDay[day]||[];
+    html+='<tr style="'+(weekend&&!dayInst.length?'opacity:0.45':'')+'">';
+    var dStyle='font-weight:'+(isToday?'700':'500')+';color:'+(weekend?'#8A8F96':isToday?'#C2410C':'#46494F')+';'+(isToday?'background:#FFF3E8;':'');
+    html+='<td class="rt-day-cell" style="'+dStyle+'">'+(m+1)+'/'+day+'('+DAYS[d.getDay()]+')'+(isToday?' ◀':'')+'</td>';
+
+    PERSONS.forEach(function(p){
+      var cell=dayInst.filter(function(i){return i.rule.person===p;});
+      var h='';
+      cell.forEach(function(i){
+        var ck=routineCheckKey(i.rule.id,ym);
+        var isDone=!!(checks[ck]||{}).checked;
+        var isOverdue=!isDone&&i.dateKey<todayKey;
+        h+='<div class="rt-chip'+(isDone?' done':'')+(isOverdue?' overdue':'')+'" title="'+(i.rule.note||'').replace(/"/g,'&quot;')+'">';
+        h+='<div class="checkbox'+(isDone?' checked':'')+'" style="flex:none" onclick="event.stopPropagation();toggleRoutineCheck(\''+i.rule.id+'\',\''+ym+'\')">'+(isDone?'✓':'')+'</div>';
+        h+='<span class="rt-chip-text">'+i.rule.task+'</span>';
+        h+='<button class="rt-chip-edit" onclick="event.stopPropagation();openRoutineModal(\''+i.rule.id+'\')" title="규칙 수정">✎</button>';
+        h+='</div>';
+      });
+      if(!h) h='<div class="rt-empty-hint">+</div>';
+      html+='<td class="rt-cell" onclick="openRoutineModal(null,'+day+',\''+p+'\')">'+h+'</td>';
+    });
+    html+='</tr>';
+  }
+  html+='</tbody></table></div>';
+
+  // 규칙 목록
+  var rules=(allData._routines||[]).slice().sort(function(a,b){
+    var da=a.dayType==='last'?99:parseInt(a.dayOfMonth||1,10);
+    var db=b.dayType==='last'?99:parseInt(b.dayOfMonth||1,10);
+    return da-db;
+  });
+  html+='<div class="rt-rules">';
+  html+='<div class="rt-rules-title">반복 규칙 '+rules.length+'건 <span style="font-weight:400;color:var(--text-tertiary);font-size:12px">— 한 번 등록하면 매달 자동으로 표에 뿌려져요</span></div>';
+  if(!rules.length){
+    html+='<div style="font-size:12px;color:var(--text-tertiary);padding:10px 0">아직 없어요. 표의 빈 칸을 누르거나 위 <b>+ 반복 업무 추가</b>로 등록하세요.</div>';
+  } else {
+    rules.forEach(function(r){
+      html+='<div class="rt-rule-row'+(r.active?'':' off')+'" onclick="openRoutineModal(\''+r.id+'\')" style="cursor:pointer">';
+      html+='<span class="rt-rule-when">'+routineWhenLabel(r)+'</span>';
+      html+='<span class="rt-rule-person">'+r.person+'</span>';
+      html+='<span class="rt-rule-task">'+r.task+(r.note?' <span style="color:var(--text-tertiary)">· '+r.note+'</span>':'')+'</span>';
+      if(!r.active) html+='<span class="tag tag-neutral">중지</span>';
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+
+  document.getElementById('routine-content').innerHTML=html;
+}
+
+// 오늘 대시보드에 붙는 반복 업무 요약 (지난 미완료 + 앞으로 7일)
+function routineDueHtml(key){
+  var base=new Date(key+'T00:00:00');
+  var y=base.getFullYear(),m=base.getMonth(),ym=ymKey(base);
+  var inst=routineInstancesFor(y,m);
+  if(!inst.length) return '';
+  var soon=[],overdue=[];
+  inst.forEach(function(i){
+    var isDone=!!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;
+    if(isDone&&!showDone) return;
+    var diff=Math.round((new Date(i.dateKey+'T00:00:00')-base)/86400000);
+    if(diff<0){ if(!isDone) overdue.push({i:i,done:isDone,diff:diff}); }
+    else if(diff<=7) soon.push({i:i,done:isDone,diff:diff});
+  });
+  if(!soon.length&&!overdue.length) return '';
+
+  function chip(o){
+    var i=o.i,ck=routineCheckKey(i.rule.id,ym);
+    var label=o.diff<0?('D+'+Math.abs(o.diff)+' 지남'):o.diff===0?'오늘':'D-'+o.diff;
+    var cls=o.diff<0?'due-overdue':o.diff<=3?'due-soon':'due-normal';
+    var h='<div class="autolab-item'+(o.done?' done':'')+'">';
+    h+='<div class="autolab-check-area">';
+    h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+ym+'\')">'+(o.done?'✓':'')+'</div>';
+    h+='<div style="flex:1;min-width:0">';
+    h+='<div class="autolab-task-text">'+i.rule.task+'</div>';
+    h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">';
+    h+='<span class="due-badge '+cls+'">'+label+'</span>';
+    h+='<span style="font-size:12px;line-height:18px;color:var(--text-tertiary)">'+(base.getMonth()+1)+'/'+i.day+' · '+i.rule.person+'</span>';
+    h+='</div></div></div></div>';
+    return h;
+  }
+
+  var h='<div class="person-autolab-card" style="margin-top:14px">';
+  h+='<div class="person-autolab-header"><div class="person-id"><span class="person-autolab-name">월간 반복 업무</span></div>';
+  h+='<div class="person-meta">';
+  if(overdue.length) h+='<span class="tag tag-danger">지남 '+overdue.length+'</span>';
+  h+='<span class="person-count">'+(overdue.length+soon.length)+'건</span></div></div>';
+  h+='<div class="person-autolab-body">';
+  overdue.forEach(function(o){h+=chip(o);});
+  soon.forEach(function(o){h+=chip(o);});
+  h+='</div></div>';
+  return h;
+}
+
+// ---- 규칙 모달 ----
+function onRoutineDayTypeChange(){
+  var isLast=document.getElementById('rt-daytype').value==='last';
+  document.getElementById('rt-day').disabled=isLast;
+  document.getElementById('rt-day').style.opacity=isLast?'0.4':'1';
+}
+function openRoutineModal(id,presetDay,presetPerson){
+  routineEditId=id||null;
+  var rule=id?(allData._routines||[]).find(function(r){return String(r.id)===String(id);}):null;
+  document.getElementById('routine-modal-title').textContent=rule?'반복 업무 수정':'반복 업무 추가';
+  document.getElementById('routine-modal-sub').textContent=rule?routineWhenLabel(rule)+' · '+rule.person:'매달 같은 날 반복되는 업무를 등록해요';
+  document.getElementById('rt-task').value=rule?rule.task:'';
+  document.getElementById('rt-person').value=rule?rule.person:(presetPerson||PERSONS[0]);
+  document.getElementById('rt-daytype').value=rule?rule.dayType:'day';
+  document.getElementById('rt-day').value=rule?(rule.dayOfMonth||1):(presetDay||1);
+  document.getElementById('rt-shift').value=rule?rule.weekendShift:'none';
+  document.getElementById('rt-note').value=rule?rule.note:'';
+  document.getElementById('rt-active').checked=rule?!!rule.active:true;
+  document.getElementById('rt-delete-btn').style.display=rule?'':'none';
+  document.getElementById('rt-save-btn').textContent='저장';
+  document.getElementById('rt-save-btn').disabled=false;
+  onRoutineDayTypeChange();
+  document.getElementById('routine-modal-bg').classList.add('open');
+  setTimeout(function(){document.getElementById('rt-task').focus();},100);
+}
+function closeRoutineModal(){document.getElementById('routine-modal-bg').classList.remove('open');}
+document.getElementById('routine-modal-bg').onclick=function(e){if(e.target===this)closeRoutineModal();};
+
+async function saveRoutine(){
+  if(routineSaving) return;
+  var task=document.getElementById('rt-task').value.trim();
+  if(!task){showToast('업무 내용을 입력하세요');return;}
+  var payload={
+    person:document.getElementById('rt-person').value,
+    task:task,
+    day_type:document.getElementById('rt-daytype').value,
+    day_of_month:parseInt(document.getElementById('rt-day').value||'1',10),
+    weekend_shift:document.getElementById('rt-shift').value,
+    note:document.getElementById('rt-note').value.trim(),
+    active:document.getElementById('rt-active').checked,
+  };
+  if(payload.day_type==='last') payload.day_of_month=null;
+  var btn=document.getElementById('rt-save-btn');
+  routineSaving=true; btn.textContent='저장 중...'; btn.disabled=true;
+  try{
+    if(routineEditId){
+      var res=await _sb.from('biz_routine').update(payload).eq('id',parseInt(routineEditId));
+      if(res.error) throw res.error;
+      var r=(allData._routines||[]).find(function(x){return String(x.id)===String(routineEditId);});
+      if(r){r.person=payload.person;r.task=payload.task;r.dayType=payload.day_type;
+        r.dayOfMonth=payload.day_of_month;r.weekendShift=payload.weekend_shift;
+        r.note=payload.note;r.active=payload.active;}
+    } else {
+      payload.created_at=dk(new Date());
+      var ins=await _sb.from('biz_routine').insert(payload).select().single();
+      if(ins.error) throw ins.error;
+      allData._routines=allData._routines||[];
+      allData._routines.push({id:String(ins.data.id),person:payload.person,task:payload.task,
+        dayType:payload.day_type,dayOfMonth:payload.day_of_month,weekendShift:payload.weekend_shift,
+        note:payload.note,active:payload.active});
+    }
+    closeRoutineModal(); renderRoutine(); render(); showToast('저장됐어요!');
+  }catch(err){
+    showToast('오류: '+(err.message||err));
+  }
+  routineSaving=false; btn.textContent='저장'; btn.disabled=false;
+}
+
+async function deleteRoutine(){
+  if(!routineEditId) return;
+  if(!confirm('이 반복 업무를 삭제할까요? 지난 완료 기록도 함께 지워져요.')) return;
+  var res=await _sb.from('biz_routine').delete().eq('id',parseInt(routineEditId));
+  if(res.error){showToast('삭제 실패');return;}
+  var prefix='r'+routineEditId+'_';
+  await _sb.from('biz_check').delete().eq('type','routine').like('item_key',prefix+'%');
+  Object.keys(checks).forEach(function(k){if(k.indexOf(prefix)===0) delete checks[k];});
+  allData._routines=(allData._routines||[]).filter(function(r){return String(r.id)!==String(routineEditId);});
+  closeRoutineModal(); renderRoutine(); render(); showToast('삭제됐어요!');
+}
+
+loadData();
+</script>
+</body>
+</html>
