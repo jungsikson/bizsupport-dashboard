@@ -1287,7 +1287,9 @@ function toggleRoutineCheck(ruleId,ym){
   var current=(checks[ck]||{}).checked;
   var newChecked=!current,curKey=dk(new Date());
   checks[ck]={checked:newChecked,completedDate:newChecked?curKey:''};
-  if(currentTab==='routine') renderRoutine(); else render();
+  if(currentTab==='routine') renderRoutine();
+  else if(currentTab.startsWith('matrix-')){render();renderMatrix(currentTab.replace('matrix-',''));}
+  else render();
   upsertCheck('routine',ck,newChecked,newChecked?curKey:'');
 }
 
@@ -1867,10 +1869,11 @@ function routineItemsForPerson(person,key){
   var out=[];
   routineInstancesFor(y,m).forEach(function(i){
     if(i.rule.person!==person) return;
-    var isDone=!!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;
+    var info=checks[routineCheckKey(i.rule.id,ym)]||{};
+    var isDone=!!info.checked, cd=info.completedDate||'';
     var diff=Math.round((new Date(i.dateKey+'T00:00:00')-base)/86400000);
-    if(diff>7) return;            // 아직 멀었음
-    if(diff<0&&isDone) return;    // 지난 건 중 완료된 것은 숨김
+    if(diff>7) return;                                   // 아직 멀었음
+    if(isDone&&diff<0&&!(cd!==''&&key<=cd)) return;      // 완료한 지난 건은 완료일까지만 (일반 일감과 동일 규칙)
     out.push({inst:i,done:isDone,diff:diff,ym:ym,day:i.day,month:m+1});
   });
   out.sort(function(a,b){return a.diff-b.diff;});
@@ -1918,11 +1921,12 @@ function routineCardItemHtml(o){
 function matrixRoutineBandHtml(person){
   var key=dk(curDate);
   var items=routineMonthItemsForPerson(person,key);
+  if(!showDone) items=items.filter(function(o){return !o.done;});
   var base=new Date(key+'T00:00:00');
   var h='<div class="matrix-routine-band">';
   h+='<div class="mrb-title">'+(base.getMonth()+1)+'월 반복 업무</div>';
   if(!items.length){
-    h+='<div class="mrb-empty">이 달에 걸린 반복 업무가 없어요</div>';
+    h+='<div class="mrb-empty">'+(showDone?'이 달에 걸린 반복 업무가 없어요':'미완료 반복 업무가 없어요')+'</div>';
   } else {
     h+='<div class="mrb-list">';
     items.forEach(function(o){
