@@ -485,6 +485,7 @@ body{background:var(--bg-canvas)}
 .rt-wd-preset{display:flex;gap:6px;margin-top:6px}
 .rt-wd-preset button{border:1px solid var(--border-subtle);background:var(--bg-subtle);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;color:var(--text-secondary);cursor:pointer}
 .rt-wd-preset button:hover{background:var(--bg-surface)}
+.pending-badge{font-size:11px;line-height:18px;font-weight:700;color:#B4470F;background:#FDE8D9;border-radius:5px;padding:0 6px}
 /* 공지 팝업 */
 .notice-bg{display:none;position:fixed;inset:0;background:rgba(17,20,24,0.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:400;justify-content:center;align-items:center;padding:24px}
 .notice-bg.open{display:flex}
@@ -641,12 +642,12 @@ body{background:var(--bg-canvas)}
     <ul class="notice-list">
       <li><b>반복 업무</b> 탭 → <b>+ 반복 업무 추가</b> → <b>반복 주기</b>에서 데일리·주간·월간 중에 고르시면 됩니다</li>
       <li>데일리는 <b>평일만</b> 버튼을 누르면 월~금이 한 번에 켜집니다. 매일 해야 하면 <b>매일</b>을 누르세요</li>
-      <li>내 카드에는 <b>오늘 할 것과 아직 못 한 것만</b> 올라옵니다. 내일 이후 것은 안 보여요</li>
+      <li>내 카드에는 <b>그날 것 한 줄만</b> 올라옵니다. 며칠 밀리면 <b>“3일 밀림”</b>으로 표시돼요</li>
       <li>업무가 많으면 <b>업무별</b> 보기가 편합니다. 한 줄에 한 달치 체크가 가로로 깔려요</li>
     </ul>
     <p><b>이미 등록해두신 월간 업무와 완료 기록은 그대로입니다.</b> 아무것도 다시 만드실 필요 없어요.</p>
     <div class="notice-note">같은 일을 날짜만 바꿔 여러 건 등록해 두셨다면(예: 7일·14일·21일·28일) 이제 <b>주간</b> 한 건으로 합칠 수 있습니다. 합치면 예전 규칙의 완료 기록은 따라오지 않으니, 필요하시면 말씀해주세요.<br><br>
-    <b>못 한 반복 업무는 일반 일감처럼 다음 날로 이월됩니다.</b> 체크해서 끝내기 전까지 계속 따라와요.</div>
+    <b>규칙은 등록한 날부터 생깁니다.</b> 지난 날짜로 거슬러 만들어지지 않아요. 어느 날짜를 걸렀는지는 반복 업무 탭 표에서 보입니다.</div>
     <div class="notice-btns"><button onclick="closeNotice()">확인했어요</button></div>
   </div>
 </div>
@@ -963,7 +964,7 @@ async function loadData(){
 
     data._routines=(routineRes.data||[]).map(function(row){
       return {id:String(row.id),person:row.person,task:row.task,
-        freq:row.freq||'monthly',weekdays:row.weekdays||'',
+        freq:row.freq||'monthly',weekdays:row.weekdays||'',createdAt:row.created_at||'',
         dayType:row.day_type||'day',dayOfMonth:row.day_of_month,
         weekendShift:row.weekend_shift||'none',note:row.note||'',active:row.active!==false};
     });
@@ -1440,14 +1441,16 @@ function renderGuide(){
     +'<li><b>월간</b>은 한 달이 단위입니다. 다음 달로 넘어가면 체크가 새로 시작돼요</li>'
     +'<li>지난 기록은 달 이동 화살표로 돌아가서 보면 됩니다</li>'
     +'</ul>';
-  h+='<h3>못 한 건 일반 일감처럼 이월됩니다</h3>';
-  h+='<p><b>어제 못 한 반복 업무는 오늘 내 카드에 그대로 남습니다.</b> 일반 일감과 같은 규칙이에요. 체크해서 끝내기 전까지는 계속 따라옵니다.</p>';
+  h+='<h3>등록한 날부터 생깁니다</h3>';
+  h+='<p>규칙을 오늘 만들면 <b>오늘부터</b> 표에 생깁니다. 지난 날짜로 거슬러 올라가 만들어지지 않아요. 이번 달 1일부터 했던 업무라도, 지난 날짜에 체크를 남기고 싶으시면 말씀해주세요.</p>';
+  h+='<h3>내 카드에는 그날 것 한 줄만</h3>';
+  h+='<p>데일리·주간 업무는 <b>오늘 대시보드</b>의 내 카드에 <b>그날 해당하는 한 줄만</b> 올라옵니다. 며칠 밀려도 카드가 길어지지 않아요.</p>';
   h+='<ul>'
-    +'<li>내 카드에 올라오는 건 <b>오늘 할 것 + 아직 못 한 것</b>입니다. 내일 이후 것은 안 보여요(월간만 며칠 전부터 미리 보입니다)</li>'
-    +'<li>이월된 건에는 <b>며칠 것인지</b> 날짜가 같이 붙습니다</li>'
-    +'<li>안 할 업무면 그냥 체크해서 넘기세요. 반복 업무는 일감처럼 한 건만 지울 수는 없고, 아예 안 하게 됐으면 규칙을 <b>사용 중</b>에서 꺼주시면 됩니다</li>'
+    +'<li>밀린 게 있으면 그 줄에 <b>“3일 밀림”</b>처럼 표시됩니다</li>'
+    +'<li>어느 날짜를 걸렀는지는 <b>반복 업무</b> 탭 표에서 빈 동그라미로 보입니다. 지난 날짜도 거기서 체크할 수 있어요</li>'
+    +'<li>안 할 업무면 그냥 체크해서 넘기세요. 반복 업무는 일감처럼 한 건만 지울 수 없고, 아예 안 하게 됐으면 규칙을 <b>사용 중</b>에서 꺼주시면 됩니다</li>'
     +'</ul>';
-  h+='<div class="note">매일 하는 업무는 안 하고 두면 며칠치가 쌓여 보입니다. 그게 부담스러우면 말씀해주세요. 오래된 건 접어두는 식으로 바꿀 수 있어요.</div>';
+  h+='<div class="note">밀린 날짜가 각각 한 줄씩 보여야 하는 업무가 있으면 말씀해주세요. 지금은 반복 업무는 오늘 하면 어제 것까지 따라잡히는 성격으로 보고 한 줄로 두었어요.</div>';
   h+='<p>보는 방식이 두 가지예요. <b>담당자별</b>은 날짜가 세로로 흐르고 사람이 가로로 놓여서 그날 누가 뭘 하는지 보기 좋고, <b>업무별</b>은 업무가 세로로, 날짜가 가로로 놓여서 한 달 전체를 한눈에 보기 좋습니다. 매일 하는 업무가 많으면 <b>업무별</b>이 편합니다.</p>';
 
   h+='<h2>일감은 이렇게 다룹니다</h2>';
@@ -1935,8 +1938,11 @@ function routineInstancesFor(y,m,includeInactive){
   var out=[],ym=ymKey(new Date(y,m,1));
   (allData._routines||[]).forEach(function(r){
     if(!r.active&&!includeInactive) return;
+    var from=r.createdAt||'';               // 규칙을 등록하기 전 날짜는 전개하지 않는다
     routineDatesFor(r,y,m).forEach(function(d){
-      out.push({rule:r,date:d,day:d.getDate(),dateKey:dk(d),ym:ym,pk:routinePeriodKey(r,d,ym)});
+      var key=dk(d);
+      if(from&&key<from) return;
+      out.push({rule:r,date:d,day:d.getDate(),dateKey:key,ym:ym,pk:routinePeriodKey(r,d,ym)});
     });
   });
   out.sort(function(a,b){return a.day-b.day;});
@@ -2156,17 +2162,28 @@ function routineRulesHtml(){
 function routineItemsForPerson(person,key){
   var base=new Date(key+'T00:00:00');
   var y=base.getFullYear(),m=base.getMonth(),ym=ymKey(base);
-  var out=[];
-  routineInstancesFor(y,m).forEach(function(i){
+  var out=[],inst=routineInstancesFor(y,m);
+  // 데일리·주간은 한 규칙당 한 줄만 보여준다. 밀린 건 개수만 배지로 알린다.
+  var pending={};
+  inst.forEach(function(i){
+    if(routineFreqOf(i.rule)==='monthly') return;
+    if(i.dateKey>=key) return;
+    if(!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked)
+      pending[i.rule.id]=(pending[i.rule.id]||0)+1;
+  });
+  inst.forEach(function(i){
     if(i.rule.person!==person) return;
     var info=checks[routineCheckKey(i.rule.id,i.pk)]||{};
     var isDone=!!info.checked, cd=info.completedDate||'';
     var diff=Math.round((new Date(i.dateKey+'T00:00:00')-base)/86400000);
-    // 일반 일감과 같은 규칙: 오늘 것 + 지난 미완료(이월), 완료한 건 완료일까지만.
-    // 월간만 D-7 미리보기를 유지한다(준비가 필요한 업무라서).
-    if(diff>(routineFreqOf(i.rule)==='monthly'?7:0)) return;
-    if(isDone&&diff<0&&!(cd!==''&&key<=cd)) return;
-    out.push({inst:i,done:isDone,diff:diff,ym:ym,pk:i.pk,day:i.day,month:m+1});
+    if(routineFreqOf(i.rule)!=='monthly'){
+      if(diff!==0) return;                               // 그날 해당하는 한 건만
+    } else {
+      if(diff>7) return;                                 // 월간은 D-7부터 미리 보인다
+      if(isDone&&diff<0&&!(cd!==''&&key<=cd)) return;    // 완료한 지난 건은 완료일까지만
+    }
+    out.push({inst:i,done:isDone,diff:diff,ym:ym,pk:i.pk,day:i.day,month:m+1,
+              pending:pending[i.rule.id]||0});
   });
   out.sort(function(a,b){return a.diff-b.diff;});
   return out;
@@ -2181,10 +2198,7 @@ function routineMonthItemsForPerson(person,key){
   routineInstancesFor(y,m).forEach(function(i){
     if(i.rule.person!==person) return;
     var isDone=!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked;
-    if(routineFreqOf(i.rule)!=='monthly'){
-      if(i.dateKey>key) return;                  // 미래 것은 안 보여준다
-      if(i.dateKey<key&&isDone) return;          // 지난 건은 미완료만 남긴다(이월)
-    }
+    if(routineFreqOf(i.rule)!=='monthly'&&i.dateKey!==key) return;   // 데일리·주간은 그날 것만
     out.push({inst:i,done:isDone,overdue:!isDone&&i.dateKey<todayKey,ym:ym,pk:i.pk,day:i.day,month:m+1});
   });
   out.sort(function(a,b){return a.day-b.day;});
@@ -2208,6 +2222,7 @@ function routineCardItemHtml(o){
   h+='<span class="rp-badge">'+routineWhenLabel(i.rule)+'</span>';
   if(o.done) h+='<span class="done-badge">완료</span>';
   h+='<span class="due-badge '+cls+'">'+routineDueLabel(o.diff)+'</span>';
+  if(o.pending>0&&!o.done) h+='<span class="pending-badge">'+o.pending+'일 밀림</span>';
   h+='<span style="font-size:12px;line-height:18px;color:var(--text-tertiary)">'+o.month+'/'+o.day+'</span>';
   h+='</div></div></div></div>';
   return h;
@@ -2229,7 +2244,7 @@ function matrixRoutineBandHtml(person){
       h+='<div class="mrb-item'+(o.done?' done':'')+(o.overdue?' overdue':'')+'">';
       h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+o.inst.rule.id+'\',\''+o.pk+'\')">'+(o.done?'✓':'')+'</div>';
       h+='<span class="mrb-text" onclick="openRoutineModal(\''+o.inst.rule.id+'\')">'+o.inst.rule.task+'</span>';
-      h+='<span class="mrb-when">'+(routineFreqOf(o.inst.rule)!=='monthly'&&o.inst.dateKey===key?'오늘':o.day+'일')+'</span>';
+      h+='<span class="mrb-when">'+(routineFreqOf(o.inst.rule)==='monthly'?o.day+'일':'오늘')+'</span>';
       h+='</div>';
     });
     h+='</div>';
