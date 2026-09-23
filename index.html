@@ -582,52 +582,58 @@ body{background:var(--bg-canvas)}
 .mo-dow{background:var(--bg-subtle);text-align:center;font-size:11px;font-weight:700;color:var(--text-secondary);padding:7px 0}
 .mo-dow.sun{color:#C8392E}
 .mo-dow.sat{color:#1A5FA8}
-.mo-cell{background:var(--bg-surface);min-height:104px;padding:6px 7px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:background .1s}
+.mo-cell{background:var(--bg-surface);min-height:116px;padding:6px 7px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:background .1s}
 .mo-cell:hover{background:var(--bg-subtle)}
 .mo-cell.out{background:var(--bg-subtle);cursor:default}
 .mo-cell.out:hover{background:var(--bg-subtle)}
 .mo-cell.today{background:#FFF8F5}
 .mo-cell.today:hover{background:#FFF1EB}
-.mo-num{font-size:12px;font-weight:700;color:var(--text-secondary);line-height:18px;margin-bottom:2px}
+.mo-num{font-size:12px;font-weight:700;color:var(--text-secondary);line-height:20px;margin-bottom:2px}
 .mo-cell.sun .mo-num{color:#C8392E}
 .mo-cell.sat .mo-num{color:#1A5FA8}
 .mo-today-dot{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--brand);color:#fff;padding:0 5px}
-.mo-p{display:flex;align-items:center;gap:5px;font-size:11.5px;line-height:17px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-p{display:flex;align-items:center;gap:6px;font-size:12px;line-height:22px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mo-p b{color:var(--text-primary);font-weight:600}
 .mo-cnt{color:var(--text-tertiary);font-variant-numeric:tabular-nums}
 .mo-p.all-done .mo-cnt{color:#1B8E4D}
 .mo-p.all-done b{color:var(--text-tertiary)}
 .mo-dotmark{flex:none;width:5px;height:5px;border-radius:50%;background:var(--border-strong)}
 .mo-p.has-left .mo-dotmark{background:var(--brand)}
-.mo-t{font-size:11.5px;line-height:17px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.mo-t{font-size:12px;line-height:22px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
 .mo-box{flex:none;width:9px;height:9px;border:1.5px solid var(--border-strong);border-radius:2px;box-sizing:border-box}
 .mo-t.rt .mo-box{border-radius:50%}
 .mo-t.done{color:var(--text-tertiary);text-decoration:line-through}
 .mo-t.done .mo-box{background:#1B8E4D;border-color:#1B8E4D}
-.mo-more{font-size:11px;color:var(--text-tertiary);line-height:16px}
-.mo-vac{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:2px}
+.mo-more{font-size:12px;color:var(--text-tertiary);line-height:22px;padding-left:15px}
+.mo-vac{display:flex;flex-wrap:wrap;gap:4px}
 /* 휴가 표식 — 날짜+사람이 같이 나오는 화면 공통 */
-.vac-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;line-height:18px;padding:0 6px;border-radius:5px;background:#E3EDFA;color:#17539A;white-space:nowrap}
-.vac-badge.part{background:#EEF4FC;color:#3C72B8}
+/* 옆에 나란히 서는 .tag(이월 배지)와 같은 규격 — 크기가 아니라 색으로 띄운다 */
+.vac-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;background:#1A5FA8;color:#fff;white-space:nowrap}
+.vac-badge.part{background:#DCE9F8;color:#15528F}
 .rt-cell-vac{margin-bottom:3px}
-.rt-task-table td.slot.vac{background:#EAF2FC}
-.rt-task-table td.slot.vac.wk{background:#E1EBF7}
+.rt-task-table td.slot.vac{background:#CFE1F7}
+.rt-task-table td.slot.vac.wk{background:#C3D8F2}
 .hist-vac{margin-left:6px}
 /* 전사휴무(공휴일) */
-.hol-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;line-height:18px;padding:0 6px;border-radius:5px;background:#FBE4E1;color:#B3261E;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.hol-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;background:#C2352A;color:#fff;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .date-hol,.rt-day-hol{margin-left:6px}
-.mo-cell.hol{background:#FFFAF9}
-.mo-cell.hol:hover{background:#FFF4F2}
+.mo-cell.hol{background:#FDEEEC}
+.mo-cell.hol:hover{background:#FBE4E1}
 .mo-cell.hol .mo-num{color:#B3261E}
-.mo-hol{margin-bottom:2px}
-.rt-task-table td.slot.hol{background:#FBEFED}
+/* 한 명만 보고 있을 때는 그 사람 휴가일 칸을 통째로 칠한다 */
+.mo-cell.vacday{background:#EAF2FC}
+.mo-cell.vacday:hover{background:#DCE9F8}
+.mo-cell.hol.vacday{background:#FBEDF0}
+.mo-hol{display:flex}
+.mo-hol .hol-badge{font-size:12px;font-weight:700;line-height:22px;padding:0 8px;letter-spacing:0}
+.rt-task-table td.slot.hol{background:#F8DAD6}
 .rt-task-table th.hol{color:#B3261E}
-.mo-chip{display:inline-flex;align-items:center;max-width:100%;font-size:10.5px;font-weight:600;line-height:16px;padding:0 5px;border-radius:4px;background:#E3EDFA;color:#17539A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-chip{display:inline-flex;align-items:center;max-width:100%;font-size:12px;font-weight:700;line-height:22px;padding:0 8px;border-radius:5px;background:#1A5FA8;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mo-person-filter{display:flex;gap:4px;flex-wrap:wrap}
 .mo-person-filter button{border:1px solid var(--border-default);background:var(--bg-surface);border-radius:var(--radius-sm);padding:4px 11px;font-size:12px;color:var(--text-secondary);cursor:pointer}
 .mo-person-filter button:hover{background:var(--bg-subtle)}
 .mo-person-filter button.on{background:#1F2937;border-color:#1F2937;color:#fff;font-weight:700}
-.mo-legend{font-size:11px;color:var(--text-tertiary);padding:0 16px 22px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.mo-legend{font-size:12px;color:var(--text-tertiary);padding:0 16px 22px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;line-height:22px}
 .mo-legend .mo-box,.mo-legend .mo-dotmark{display:inline-block;vertical-align:middle;margin-right:4px}
 </style>
 </head>
@@ -1339,7 +1345,9 @@ function renderMonthly(){
     if(dayNum<1||dayNum>last){ html+='<div class="mo-cell out"></div>'; continue; }
     var d=new Date(y,m,dayNum),k=dk(d),dow=d.getDay();
     var holName=holidayOn(k);
-    var cls='mo-cell'+(dow===0?' sun':dow===6?' sat':'')+(holName?' hol':'')+(k===todayKey?' today':'');
+    var vacToday=(vacByDate[k]||[]).length;
+    var cls='mo-cell'+(dow===0?' sun':dow===6?' sat':'')+(holName?' hol':'')
+      +(monthlyPerson&&vacToday?' vacday':'')+(k===todayKey?' today':'');
     html+='<div class="'+cls+'" onclick="openDayFromMonthly(\''+k+'\')">';
     html+='<div class="mo-num">'+(k===todayKey?'<span class="mo-today-dot">'+dayNum+'</span>':dayNum)+'</div>';
     if(holName) html+='<div class="mo-hol">'+holBadgeHtml(k)+'</div>';
