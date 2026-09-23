@@ -206,7 +206,8 @@ body{font-family:var(--font-sans);background:var(--bg-canvas);color:var(--text-p
 @media (max-width: 640px) {
   .main{padding:12px}
   .header{padding:10px 14px}
-  .date-label{min-width:120px;font-size:13px}
+  .date-nav{width:100%;max-width:280px}
+  .date-label{font-size:13px}
   .tab-bar{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;border-radius:12px}
   .tab-btn{white-space:nowrap;padding:8px 14px}
   .person-autolab-grid{grid-template-columns:1fr;gap:10px}
@@ -236,10 +237,37 @@ body{font-family:var(--font-sans);background:var(--bg-canvas);color:var(--text-p
 .brand-sub{font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .header-right{gap:10px}
 /* date stepper as segmented control */
-.date-nav{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:3px;gap:0}
-.date-nav button{background:transparent;border:none;border-radius:6px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:13px}
+.date-nav{position:relative;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:8px;padding:3px;gap:0;width:296px;box-sizing:border-box}
+.date-nav button{background:transparent;border:none;border-radius:6px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:13px;flex:0 0 30px}
 .date-nav button:hover{background:var(--bg-subtle);color:var(--brand)}
-.date-label{min-width:178px;font-size:13px;font-weight:700;color:var(--text-primary)}
+/* 가운데 라벨이 남는 폭을 전부 먹는다 → 글자가 길어져도 좌우 화살표는 제자리 */
+.date-label{flex:1 1 auto;min-width:0;width:auto;font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border-radius:6px;padding:4px 2px;user-select:none}
+.date-label:hover{background:var(--bg-subtle)}
+.date-label.open{background:var(--brand-tint);color:var(--brand)}
+/* 날짜 라벨을 누르면 뜨는 작은 달력 */
+.dp-pop{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:60;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;box-shadow:var(--shadow-3);padding:10px;width:250px}
+.dp-pop[hidden]{display:none}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.dp-head button{background:transparent;border:none;width:26px;height:26px;border-radius:6px;cursor:pointer;color:var(--text-secondary);font-size:12px;display:flex;align-items:center;justify-content:center}
+.dp-head button:hover{background:var(--bg-subtle);color:var(--brand)}
+.dp-title{font-size:13px;font-weight:700;color:var(--text-primary)}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-dow{font-size:11px;font-weight:700;color:var(--text-secondary);text-align:center;padding:3px 0}
+.dp-dow.sun{color:#C8392E}
+.dp-dow.sat{color:#1A5FA8}
+.dp-day{font-size:12px;font-weight:600;text-align:center;padding:6px 0;border-radius:6px;cursor:pointer;color:var(--text-primary)}
+.dp-day:hover{background:var(--bg-subtle)}
+.dp-day.out{visibility:hidden;cursor:default}
+.dp-day.sun{color:#C8392E}
+.dp-day.sat{color:#1A5FA8}
+.dp-day.hol{color:#B3261E;background:#FDEEEC}
+.dp-day.today{box-shadow:inset 0 0 0 1px var(--border-strong)}
+.dp-day.sel{background:var(--brand);color:#fff}
+.dp-day.sel:hover{background:var(--brand-pressed)}
+.dp-foot{display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+.dp-hint{font-size:11px;color:var(--text-tertiary)}
+.dp-foot button{background:var(--bg-subtle);border:1px solid var(--border-default);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text-secondary);cursor:pointer}
+.dp-foot button:hover{color:var(--text-primary);border-color:var(--border-strong)}
 /* ghost pill controls */
 .icon-btn,.toggle-done-btn{background:var(--bg-surface);border:1px solid var(--border-default);color:var(--text-secondary);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
 .icon-btn:hover,.toggle-done-btn:hover{background:var(--bg-subtle);border-color:var(--border-strong);color:var(--text-primary)}
@@ -253,7 +281,7 @@ body{font-family:var(--font-sans);background:var(--bg-canvas);color:var(--text-p
 .tab-btn.active{background:var(--brand);color:#fff}
 
 /* ---- Pill tag system (Caramel Tag) ---- */
-.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;line-height:1;letter-spacing:-0.02em;padding:5px 8px;border-radius:5px;white-space:nowrap}
 .tag-neutral{background:var(--bg-muted);color:var(--text-secondary)}
 .tag-brand{background:var(--brand-tint);color:var(--brand)}
 .tag-danger{background:var(--status-overdue-bg);color:var(--status-overdue-fg)}
@@ -355,7 +383,7 @@ body{font-family:var(--font-sans);background:var(--bg-canvas);color:var(--text-p
 .spinner{border-top-color:var(--brand)}
 
 @media (max-width:640px){
-  .date-label{min-width:120px}
+  .date-nav{width:100%;max-width:280px}
 }
 
 /* ============================================================
@@ -608,14 +636,15 @@ body{background:var(--bg-canvas)}
 .mo-vac{display:flex;flex-wrap:wrap;gap:4px}
 /* 휴가 표식 — 날짜+사람이 같이 나오는 화면 공통 */
 /* 옆에 나란히 서는 .tag(이월 배지)와 같은 규격 — 크기가 아니라 색으로 띄운다 */
-.vac-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;background:#1A5FA8;color:#fff;white-space:nowrap}
-.vac-badge.part{background:#DCE9F8;color:#15528F}
+.vac-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:700;line-height:1;letter-spacing:-0.02em;padding:5px 8px;border-radius:5px;background:#1A5FA8;color:#fff;white-space:nowrap}
+/* 시간차도 같은 파랑 — 달력 딱지와 색이 갈리면 같은 정보가 달라 보인다. 시간 글자가 이미 구분해 준다 */
+.vac-badge.part{background:#1A5FA8;color:#fff}
 .rt-cell-vac{margin-bottom:3px}
 .rt-task-table td.slot.vac{background:#CFE1F7}
 .rt-task-table td.slot.vac.wk{background:#C3D8F2}
 .hist-vac{margin-left:6px}
 /* 전사휴무(공휴일) */
-.hol-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;line-height:1;letter-spacing:-0.02em;padding:4px 7px;border-radius:5px;background:#C2352A;color:#fff;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.hol-badge{display:inline-flex;align-items:center;font-size:12px;font-weight:700;line-height:1;letter-spacing:-0.02em;padding:5px 8px;border-radius:5px;background:#C2352A;color:#fff;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .date-hol,.rt-day-hol{margin-left:6px}
 .mo-cell.hol{background:#FDEEEC}
 .mo-cell.hol:hover{background:#FBE4E1}
@@ -667,8 +696,9 @@ body{background:var(--bg-canvas)}
       <div class="topbar-left">
         <div class="date-nav" id="date-nav-wrap">
           <button onclick="changeDay(-1)" aria-label="이전 날">◀</button>
-          <div class="date-label" id="date-label">-</div>
+          <div class="date-label" id="date-label" onclick="toggleDatePicker(event)" title="눌러서 다른 날짜로 이동">-</div>
           <button onclick="changeDay(1)" aria-label="다음 날">▶</button>
+          <div class="dp-pop" id="date-picker" hidden></div>
         </div>
       </div>
       <div class="topbar-right">
@@ -982,6 +1012,7 @@ function toggleShowDone(){
 }
 function switchTab(tab){
   currentTab=tab;
+  closeDatePicker();
   var allTabs=['monthly','dashboard','matrix-정희진','matrix-박현아','matrix-전윤정','matrix-강라영','history','routine','cells','guide'];
   allTabs.forEach(function(t){
     document.getElementById('tab-'+t).className='tab-btn'+(tab===t?' active':'');
@@ -1692,6 +1723,82 @@ function toggleRoutineCheck(ruleId,ym){
 
 function changeDay(d){curDate=new Date(curDate);curDate.setDate(curDate.getDate()+d);render();}
 function goToday(){curDate=new Date();curDate.setHours(0,0,0,0);render();}
+
+// =============================================
+// 날짜 라벨 → 작은 달력 (원하는 날짜로 바로 이동)
+// 화살표로 하루씩 넘기는 것과 별개로, 먼 날짜는 여기서 한 번에 고른다.
+// =============================================
+var dpMonth=null;   // 팝오버가 보고 있는 달 (그 달 1일로 정규화)
+
+function toggleDatePicker(e){
+  if(e) e.stopPropagation();
+  var pop=document.getElementById('date-picker');
+  if(!pop) return;
+  if(!pop.hidden){ closeDatePicker(); return; }
+  dpMonth=new Date(curDate.getFullYear(),curDate.getMonth(),1);
+  pop.hidden=false;
+  document.getElementById('date-label').classList.add('open');
+  renderDatePicker();
+}
+function closeDatePicker(){
+  var pop=document.getElementById('date-picker');
+  if(!pop||pop.hidden) return;
+  pop.hidden=true;
+  var lab=document.getElementById('date-label');
+  if(lab) lab.classList.remove('open');
+}
+function dpChangeMonth(delta,e){
+  if(e) e.stopPropagation();
+  dpMonth=new Date(dpMonth.getFullYear(),dpMonth.getMonth()+delta,1);
+  renderDatePicker();
+}
+function dpPick(key){
+  var d=new Date(key+'T00:00:00'); d.setHours(0,0,0,0);
+  curDate=d;
+  closeDatePicker();
+  render();
+}
+function dpGoToday(e){
+  if(e) e.stopPropagation();
+  var n=new Date(); n.setHours(0,0,0,0);
+  dpPick(dk(n));
+}
+function renderDatePicker(){
+  var y=dpMonth.getFullYear(),m=dpMonth.getMonth();
+  var todayKey=dk(new Date()),curKey=dk(curDate);
+  var h='<div class="dp-head">';
+  h+='<button onclick="dpChangeMonth(-1,event)" aria-label="이전 달">◀</button>';
+  h+='<span class="dp-title">'+y+'년 '+(m+1)+'월</span>';
+  h+='<button onclick="dpChangeMonth(1,event)" aria-label="다음 달">▶</button>';
+  h+='</div><div class="dp-grid">';
+  DAYS.forEach(function(n,i){
+    h+='<div class="dp-dow'+(i===0?' sun':i===6?' sat':'')+'">'+n+'</div>';
+  });
+  var lead=new Date(y,m,1).getDay(),last=lastDayOf(y,m);
+  var cells=Math.ceil((lead+last)/7)*7;
+  for(var c=0;c<cells;c++){
+    var num=c-lead+1;
+    if(num<1||num>last){ h+='<div class="dp-day out"></div>'; continue; }
+    var d=new Date(y,m,num),k=dk(d),dow=d.getDay(),hol=holidayOn(k);
+    var cls='dp-day'+(dow===0?' sun':dow===6?' sat':'')+(hol?' hol':'')
+      +(k===todayKey?' today':'')+(k===curKey?' sel':'');
+    h+='<div class="'+cls+'"'+(hol?' title="'+moEsc(hol)+'"':'')
+      +' onclick="dpPick(\''+k+'\')">'+num+'</div>';
+  }
+  h+='</div><div class="dp-foot"><span class="dp-hint">날짜를 누르면 이동</span>'
+    +'<button onclick="dpGoToday(event)">오늘로</button></div>';
+  document.getElementById('date-picker').innerHTML=h;
+}
+// 바깥을 누르거나 Esc를 누르면 닫는다
+document.addEventListener('click',function(e){
+  var pop=document.getElementById('date-picker');
+  if(!pop||pop.hidden) return;
+  if(e.target&&e.target.closest&&e.target.closest('.date-nav')) return;
+  closeDatePicker();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') closeDatePicker();
+});
 
 function escapeBacktick(str){return (str||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');}
 
