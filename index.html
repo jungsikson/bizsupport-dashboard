@@ -475,6 +475,16 @@ body{background:var(--bg-canvas)}
 .routine-month button:hover{background:var(--bg-subtle)}
 .routine-month-label{font-size:15px;font-weight:700;letter-spacing:-0.02em;min-width:120px;text-align:center}
 .routine-summary{font-size:12px;color:var(--text-secondary)}
+.rt-freq-tag{display:inline-block;min-width:17px;text-align:center;font-size:10px;font-weight:700;line-height:15px;border-radius:4px;margin-right:6px;padding:0 3px}
+.rt-freq-tag.f-daily{background:#FDE8D9;color:#B4470F}
+.rt-freq-tag.f-weekly{background:#DDEBFB;color:#1A5FA8}
+.rt-freq-tag.f-monthly{background:#E6E3F5;color:#4C3C9E}
+.rt-wd-group{display:flex;gap:4px;margin-top:4px}
+.rt-wd{width:34px;height:30px;border:1px solid var(--border-default);background:var(--bg-surface);border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text-secondary)}
+.rt-wd.on{background:#1F2937;border-color:#1F2937;color:#fff;font-weight:700}
+.rt-wd-preset{display:flex;gap:6px;margin-top:6px}
+.rt-wd-preset button{border:1px solid var(--border-subtle);background:var(--bg-subtle);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;color:var(--text-secondary);cursor:pointer}
+.rt-wd-preset button:hover{background:var(--bg-surface)}
 .rt-add-btn{margin-left:auto;font-size:12px;font-weight:600;padding:7px 14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;cursor:pointer}
 .routine-table td.rt-cell{vertical-align:top;text-align:left;padding:4px;min-width:150px;white-space:normal;cursor:pointer}
 .routine-table td.rt-cell:hover{background:var(--bg-subtle)}
@@ -558,7 +568,7 @@ body{background:var(--bg-canvas)}
         <div class="nav-label">워크스페이스</div>
         <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">오늘 대시보드</button>
         <button class="tab-btn" id="tab-history" onclick="switchTab('history')">업무 히스토리</button>
-        <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">월간 반복 업무</button>
+        <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">반복 업무</button>
         <button class="tab-btn" id="tab-cells" onclick="switchTab('cells')">셀현황</button>
         <button class="tab-btn" id="tab-guide" onclick="switchTab('guide')">사용법</button>
       </div>
@@ -615,15 +625,23 @@ body{background:var(--bg-canvas)}
         <select id="rt-person" class="rt-input"><option value="정희진">정희진</option><option value="박현아">박현아</option><option value="전윤정">전윤정</option><option value="강라영">강라영</option></select>
       </label>
       <label style="flex:1">
-        <span class="rt-label">주말에 걸리면</span>
-        <select id="rt-shift" class="rt-input">
-          <option value="none">그대로 둠</option>
-          <option value="before">앞 영업일로</option>
-          <option value="after">뒤 영업일로</option>
+        <span class="rt-label">반복 주기</span>
+        <select id="rt-freq" class="rt-input" onchange="onRoutineFreqChange()">
+          <option value="daily">데일리 — 매일</option>
+          <option value="weekly">주간 — 매주 O요일</option>
+          <option value="monthly">월간 — 매월 O일</option>
         </select>
       </label>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
+    <div id="rt-weekday-row" style="margin-bottom:10px">
+      <span class="rt-label">하는 요일</span>
+      <div class="rt-wd-group" id="rt-wd-group"></div>
+      <div class="rt-wd-preset" id="rt-wd-preset">
+        <button type="button" onclick="setRtWeekdays([1,2,3,4,5])">평일만</button>
+        <button type="button" onclick="setRtWeekdays([0,1,2,3,4,5,6])">매일</button>
+      </div>
+    </div>
+    <div id="rt-monthly-row" style="display:flex;gap:8px;margin-bottom:10px">
       <label style="flex:1">
         <span class="rt-label">기준일</span>
         <select id="rt-daytype" class="rt-input" onchange="onRoutineDayTypeChange()">
@@ -634,6 +652,14 @@ body{background:var(--bg-canvas)}
       <label style="flex:1">
         <span class="rt-label">며칠</span>
         <input type="number" id="rt-day" class="rt-input" min="1" max="31" value="1">
+      </label>
+      <label style="flex:1">
+        <span class="rt-label">주말에 걸리면</span>
+        <select id="rt-shift" class="rt-input">
+          <option value="none">그대로 둠</option>
+          <option value="before">앞 영업일로</option>
+          <option value="after">뒤 영업일로</option>
+        </select>
       </label>
     </div>
     <div style="margin-bottom:10px">
@@ -898,6 +924,7 @@ async function loadData(){
 
     data._routines=(routineRes.data||[]).map(function(row){
       return {id:String(row.id),person:row.person,task:row.task,
+        freq:row.freq||'monthly',weekdays:row.weekdays||'',
         dayType:row.day_type||'day',dayOfMonth:row.day_of_month,
         weekendShift:row.weekend_shift||'none',note:row.note||'',active:row.active!==false};
     });
@@ -1815,21 +1842,63 @@ function routineDateFor(rule,y,m){
   return d;
 }
 
+function parseWeekdays(rule){
+  var raw=(rule.weekdays||'').trim();
+  if(!raw) return [1,2,3,4,5];
+  var out=raw.split(',').map(function(x){return parseInt(x,10);})
+             .filter(function(n){return !isNaN(n)&&n>=0&&n<=6;});
+  return out.length?out:[1,2,3,4,5];
+}
+
+// 규칙 → 그 달의 수행일 '목록' (월간은 1개, 데일리·주간은 여러 개)
+function routineDatesFor(rule,y,m){
+  var freq=rule.freq||'monthly';
+  if(freq==='daily'||freq==='weekly'){
+    var wd=parseWeekdays(rule),out=[],last=lastDayOf(y,m);
+    for(var day=1;day<=last;day++){
+      var d=new Date(y,m,day);
+      if(wd.indexOf(d.getDay())>=0) out.push(d);
+    }
+    return out;
+  }
+  return [routineDateFor(rule,y,m)];
+}
+
+// 체크 주기 키 — 월간은 달 단위(기존 데이터 유지), 데일리·주간은 날짜 단위
+function routinePeriodKey(rule,d,ym){
+  return (rule.freq||'monthly')==='monthly'?ym:dk(d);
+}
+
 function routineInstancesFor(y,m,includeInactive){
-  var out=[];
+  var out=[],ym=ymKey(new Date(y,m,1));
   (allData._routines||[]).forEach(function(r){
     if(!r.active&&!includeInactive) return;
-    var d=routineDateFor(r,y,m);
-    out.push({rule:r,date:d,day:d.getDate(),dateKey:dk(d),ym:ymKey(new Date(y,m,1))});
+    routineDatesFor(r,y,m).forEach(function(d){
+      out.push({rule:r,date:d,day:d.getDate(),dateKey:dk(d),ym:ym,pk:routinePeriodKey(r,d,ym)});
+    });
   });
   out.sort(function(a,b){return a.day-b.day;});
   return out;
 }
 
 function routineWhenLabel(rule){
+  var freq=rule.freq||'monthly';
+  if(freq==='daily'||freq==='weekly'){
+    var wd=parseWeekdays(rule).slice().sort(function(a,b){return a-b;});
+    if(freq==='daily'){
+      if(wd.length===7) return '매일';
+      if(wd.length===5&&wd.indexOf(0)<0&&wd.indexOf(6)<0) return '매일 (평일)';
+    }
+    return '매주 '+wd.map(function(n){return DAYS[n];}).join('·');
+  }
   var base=rule.dayType==='last'?'말일':(rule.dayOfMonth||1)+'일';
   var sfx=rule.weekendShift==='before'?' ↤주말':rule.weekendShift==='after'?' ↦주말':'';
   return '매월 '+base+sfx;
+}
+function routineFreqOf(rule){return rule.freq||'monthly';}
+function routineFreqTag(rule){
+  var f=routineFreqOf(rule);
+  return f==='daily'?'일':f==='weekly'?'주':'월';
 }
 
 function changeRoutineMonth(delta){
@@ -1850,7 +1919,7 @@ function renderRoutine(){
   var inst=routineInstancesFor(y,m);
   var todayKey=dk(new Date());
   var total=inst.length;
-  var done=inst.filter(function(i){return !!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;}).length;
+  var done=inst.filter(function(i){return !!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked;}).length;
 
   var html='<div class="routine-toolbar">';
   html+='<div class="routine-month">';
@@ -1900,11 +1969,11 @@ function routineGridByPerson(y,m,ym,last,inst,todayKey){
       var cell=dayInst.filter(function(i){return i.rule.person===p;});
       var h='';
       cell.forEach(function(i){
-        var ck=routineCheckKey(i.rule.id,ym);
+        var ck=routineCheckKey(i.rule.id,i.pk);
         var isDone=!!(checks[ck]||{}).checked;
         var isOverdue=!isDone&&i.dateKey<todayKey;
         h+='<div class="rt-chip'+(isDone?' done':'')+(isOverdue?' overdue':'')+'" title="'+(i.rule.note||'').replace(/"/g,'&quot;')+'">';
-        h+='<div class="checkbox'+(isDone?' checked':'')+'" style="flex:none" onclick="event.stopPropagation();toggleRoutineCheck(\''+i.rule.id+'\',\''+ym+'\')">'+(isDone?'✓':'')+'</div>';
+        h+='<div class="checkbox'+(isDone?' checked':'')+'" style="flex:none" onclick="event.stopPropagation();toggleRoutineCheck(\''+i.rule.id+'\',\''+i.pk+'\')">'+(isDone?'✓':'')+'</div>';
         h+='<span class="rt-chip-text">'+i.rule.task+'</span>';
         h+='<button class="rt-chip-edit" onclick="event.stopPropagation();openRoutineModal(\''+i.rule.id+'\')" title="규칙 수정">✎</button>';
         h+='</div>';
@@ -1931,14 +2000,17 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
   }
   html+='</tr></thead><tbody>';
 
-  function daySlots(i,isDone){
+  function daySlots(group){
+    var byDay={};
+    if(group) group.insts.forEach(function(i){byDay[i.day]=i;});
     var h='';
     for(var day=1;day<=last;day++){
       var d=new Date(y,m,day);
-      var isHit=i&&day===i.day;
-      var cls='slot'+(isWeekendDay(d)?' wk':'')+(isHit?' hit':'')+(isHit&&isDone?' ok':'');
-      if(isHit){
-        h+='<td class="'+cls+'"><div class="checkbox'+(isDone?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+ym+'\')">'+(isDone?'✓':'')+'</div></td>';
+      var i=byDay[day];
+      var isDone=i?!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked:false;
+      var cls='slot'+(isWeekendDay(d)?' wk':'')+(i?' hit':'')+(i&&isDone?' ok':'');
+      if(i){
+        h+='<td class="'+cls+'"><div class="checkbox'+(isDone?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+i.pk+'\')">'+(isDone?'✓':'')+'</div></td>';
       } else {
         h+='<td class="'+cls+'"></td>';
       }
@@ -1946,26 +2018,42 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
     return h;
   }
 
+  // 인스턴스를 규칙 단위로 묶는다 (데일리는 한 규칙이 한 달에 20여 개)
+  function groupByRule(list){
+    var groups=[],map={};
+    list.forEach(function(i){
+      var k=String(i.rule.id);
+      if(!map[k]){map[k]={rule:i.rule,insts:[]};groups.push(map[k]);}
+      map[k].insts.push(i);
+    });
+    var order={daily:0,weekly:1,monthly:2};
+    groups.sort(function(a,b){
+      var oa=order[routineFreqOf(a.rule)],ob=order[routineFreqOf(b.rule)];
+      if(oa!==ob) return oa-ob;
+      return a.insts[0].day-b.insts[0].day;
+    });
+    return groups;
+  }
+
   PERSONS.forEach(function(p){
-    var mine=inst.filter(function(i){return i.rule.person===p;});
-    if(!mine.length){
+    var groups=groupByRule(inst.filter(function(i){return i.rule.person===p;}));
+    if(!groups.length){
       html+='<tr class="rt-group-first">';
       html+='<td class="rt-person-cell">'+p+'<span class="rt-person-count">0건</span></td>';
       html+='<td class="rt-name" style="color:var(--text-tertiary);cursor:default">반복 업무 없음</td>';
-      html+=daySlots(null,false);
+      html+=daySlots(null);
       html+='</tr>';
       return;
     }
-    mine.forEach(function(i,idx){
-      var ck=routineCheckKey(i.rule.id,ym);
-      var isDone=!!(checks[ck]||{}).checked;
-      html+='<tr class="'+(idx===0?'rt-group-first':'')+'"'+(i.rule.active?'':' style="opacity:0.5"')+'>';
-      if(idx===0) html+='<td class="rt-person-cell" rowspan="'+mine.length+'">'+p+'<span class="rt-person-count">'+mine.length+'건</span></td>';
-      html+='<td class="rt-name" onclick="openRoutineModal(\''+i.rule.id+'\')" title="'+(i.rule.note||'').replace(/"/g,'&quot;')+'">';
-      html+=i.rule.task;
-      html+=' <span style="color:var(--text-tertiary);font-size:11px">· '+routineWhenLabel(i.rule)+'</span>';
+    groups.forEach(function(g,idx){
+      html+='<tr class="'+(idx===0?'rt-group-first':'')+'"'+(g.rule.active?'':' style="opacity:0.5"')+'>';
+      if(idx===0) html+='<td class="rt-person-cell" rowspan="'+groups.length+'">'+p+'<span class="rt-person-count">'+groups.length+'건</span></td>';
+      html+='<td class="rt-name" onclick="openRoutineModal(\''+g.rule.id+'\')" title="'+(g.rule.note||'').replace(/"/g,'&quot;')+'">';
+      html+='<span class="rt-freq-tag f-'+routineFreqOf(g.rule)+'">'+routineFreqTag(g.rule)+'</span>';
+      html+=g.rule.task;
+      html+=' <span style="color:var(--text-tertiary);font-size:11px">· '+routineWhenLabel(g.rule)+'</span>';
       html+='</td>';
-      html+=daySlots(i,isDone);
+      html+=daySlots(g);
       html+='</tr>';
     });
   });
@@ -1975,18 +2063,22 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
 }
 
 function routineRulesHtml(){
+  var order={daily:0,weekly:1,monthly:2};
   var rules=(allData._routines||[]).slice().sort(function(a,b){
+    var oa=order[routineFreqOf(a)],ob=order[routineFreqOf(b)];
+    if(oa!==ob) return oa-ob;
     var da=a.dayType==='last'?99:parseInt(a.dayOfMonth||1,10);
     var db=b.dayType==='last'?99:parseInt(b.dayOfMonth||1,10);
     return da-db;
   });
   var html='<div class="rt-rules">';
-  html+='<div class="rt-rules-title">반복 규칙 '+rules.length+'건 <span style="font-weight:400;color:var(--text-tertiary);font-size:12px">— 한 번 등록하면 매달 자동으로 표에 뿌려져요</span></div>';
+  html+='<div class="rt-rules-title">반복 규칙 '+rules.length+'건 <span style="font-weight:400;color:var(--text-tertiary);font-size:12px">— 한 번 등록하면 매일·매주·매달 자동으로 표에 뿌려져요</span></div>';
   if(!rules.length){
     html+='<div style="font-size:12px;color:var(--text-tertiary);padding:10px 0">아직 없어요. 표의 빈 칸을 누르거나 위 <b>+ 반복 업무 추가</b>로 등록하세요.</div>';
   } else {
     rules.forEach(function(r){
       html+='<div class="rt-rule-row'+(r.active?'':' off')+'" onclick="openRoutineModal(\''+r.id+'\')" style="cursor:pointer">';
+      html+='<span class="rt-freq-tag f-'+routineFreqOf(r)+'">'+routineFreqTag(r)+'</span>';
       html+='<span class="rt-rule-when">'+routineWhenLabel(r)+'</span>';
       html+='<span class="rt-rule-person">'+r.person+'</span>';
       html+='<span class="rt-rule-task">'+r.task+(r.note?' <span style="color:var(--text-tertiary)">· '+r.note+'</span>':'')+'</span>';
@@ -2005,12 +2097,16 @@ function routineItemsForPerson(person,key){
   var out=[];
   routineInstancesFor(y,m).forEach(function(i){
     if(i.rule.person!==person) return;
-    var info=checks[routineCheckKey(i.rule.id,ym)]||{};
+    var info=checks[routineCheckKey(i.rule.id,i.pk)]||{};
     var isDone=!!info.checked, cd=info.completedDate||'';
     var diff=Math.round((new Date(i.dateKey+'T00:00:00')-base)/86400000);
-    if(diff>7) return;                                   // 아직 멀었음
-    if(isDone&&diff<0&&!(cd!==''&&key<=cd)) return;      // 완료한 지난 건은 완료일까지만 (일반 일감과 동일 규칙)
-    out.push({inst:i,done:isDone,diff:diff,ym:ym,day:i.day,month:m+1});
+    if(routineFreqOf(i.rule)!=='monthly'){
+      if(diff!==0) return;                               // 데일리·주간은 그날 것만 (이월 없음)
+    } else {
+      if(diff>7) return;                                 // 아직 멀었음
+      if(isDone&&diff<0&&!(cd!==''&&key<=cd)) return;    // 완료한 지난 건은 완료일까지만 (일반 일감과 동일 규칙)
+    }
+    out.push({inst:i,done:isDone,diff:diff,ym:ym,pk:i.pk,day:i.day,month:m+1});
   });
   out.sort(function(a,b){return a.diff-b.diff;});
   return out;
@@ -2024,8 +2120,9 @@ function routineMonthItemsForPerson(person,key){
   var out=[];
   routineInstancesFor(y,m).forEach(function(i){
     if(i.rule.person!==person) return;
-    var isDone=!!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;
-    out.push({inst:i,done:isDone,overdue:!isDone&&i.dateKey<todayKey,ym:ym,day:i.day,month:m+1});
+    if(routineFreqOf(i.rule)!=='monthly'&&i.dateKey!==key) return;   // 데일리·주간은 그날 것만
+    var isDone=!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked;
+    out.push({inst:i,done:isDone,overdue:!isDone&&i.dateKey<todayKey,ym:ym,pk:i.pk,day:i.day,month:m+1});
   });
   out.sort(function(a,b){return a.day-b.day;});
   return out;
@@ -2041,11 +2138,11 @@ function routineCardItemHtml(o){
   var cls=o.diff<0?'due-overdue':o.diff<=3?'due-soon':'due-normal';
   var h='<div class="autolab-item'+(o.diff<0&&!o.done?' overdue':o.diff<=3&&!o.done?' due-soon':'')+(o.done?' done':'')+'">';
   h+='<div class="autolab-check-area">';
-  h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+o.ym+'\')">'+(o.done?'✓':'')+'</div>';
+  h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+o.pk+'\')">'+(o.done?'✓':'')+'</div>';
   h+='<div style="flex:1;min-width:0;cursor:pointer" onclick="openRoutineModal(\''+i.rule.id+'\')">';
   h+='<div class="autolab-task-text">'+i.rule.task+'</div>';
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">';
-  h+='<span class="rp-badge">반복</span>';
+  h+='<span class="rp-badge">'+routineWhenLabel(i.rule)+'</span>';
   if(o.done) h+='<span class="done-badge">완료</span>';
   h+='<span class="due-badge '+cls+'">'+routineDueLabel(o.diff)+'</span>';
   h+='<span style="font-size:12px;line-height:18px;color:var(--text-tertiary)">'+o.month+'/'+o.day+'</span>';
@@ -2060,16 +2157,16 @@ function matrixRoutineBandHtml(person){
   if(!showDone) items=items.filter(function(o){return !o.done;});
   var base=new Date(key+'T00:00:00');
   var h='<div class="matrix-routine-band">';
-  h+='<div class="mrb-title">'+(base.getMonth()+1)+'월 반복 업무</div>';
+  h+='<div class="mrb-title">반복 업무</div>';
   if(!items.length){
     h+='<div class="mrb-empty">'+(showDone?'이 달에 걸린 반복 업무가 없어요':'미완료 반복 업무가 없어요')+'</div>';
   } else {
     h+='<div class="mrb-list">';
     items.forEach(function(o){
       h+='<div class="mrb-item'+(o.done?' done':'')+(o.overdue?' overdue':'')+'">';
-      h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+o.inst.rule.id+'\',\''+o.ym+'\')">'+(o.done?'✓':'')+'</div>';
+      h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+o.inst.rule.id+'\',\''+o.pk+'\')">'+(o.done?'✓':'')+'</div>';
       h+='<span class="mrb-text" onclick="openRoutineModal(\''+o.inst.rule.id+'\')">'+o.inst.rule.task+'</span>';
-      h+='<span class="mrb-when">'+o.day+'일</span>';
+      h+='<span class="mrb-when">'+(routineFreqOf(o.inst.rule)==='monthly'?o.day+'일':'오늘')+'</span>';
       h+='</div>';
     });
     h+='</div>';
@@ -2086,7 +2183,7 @@ function routineDueHtml(key){
   if(!inst.length) return '';
   var soon=[],overdue=[];
   inst.forEach(function(i){
-    var isDone=!!(checks[routineCheckKey(i.rule.id,ym)]||{}).checked;
+    var isDone=!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked;
     if(isDone&&!showDone) return;
     var diff=Math.round((new Date(i.dateKey+'T00:00:00')-base)/86400000);
     if(diff<0){ if(!isDone) overdue.push({i:i,done:isDone,diff:diff}); }
@@ -2095,12 +2192,12 @@ function routineDueHtml(key){
   if(!soon.length&&!overdue.length) return '';
 
   function chip(o){
-    var i=o.i,ck=routineCheckKey(i.rule.id,ym);
+    var i=o.i,ck=routineCheckKey(i.rule.id,i.pk);
     var label=o.diff<0?('D+'+Math.abs(o.diff)+' 지남'):o.diff===0?'오늘':'D-'+o.diff;
     var cls=o.diff<0?'due-overdue':o.diff<=3?'due-soon':'due-normal';
     var h='<div class="autolab-item'+(o.done?' done':'')+'">';
     h+='<div class="autolab-check-area">';
-    h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+ym+'\')">'+(o.done?'✓':'')+'</div>';
+    h+='<div class="checkbox'+(o.done?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+i.pk+'\')">'+(o.done?'✓':'')+'</div>';
     h+='<div style="flex:1;min-width:0">';
     h+='<div class="autolab-task-text">'+i.rule.task+'</div>';
     h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">';
@@ -2128,13 +2225,46 @@ function onRoutineDayTypeChange(){
   document.getElementById('rt-day').disabled=isLast;
   document.getElementById('rt-day').style.opacity=isLast?'0.4':'1';
 }
+
+var rtWeekdays=[1,2,3,4,5];
+function renderRtWeekdays(){
+  var h='';
+  for(var n=0;n<7;n++){
+    var on=rtWeekdays.indexOf(n)>=0;
+    h+='<button type="button" class="rt-wd'+(on?' on':'')+'" onclick="toggleRtWeekday('+n+')">'+DAYS[n]+'</button>';
+  }
+  document.getElementById('rt-wd-group').innerHTML=h;
+}
+function toggleRtWeekday(n){
+  var freq=document.getElementById('rt-freq').value;
+  var i=rtWeekdays.indexOf(n);
+  if(i>=0){ if(rtWeekdays.length>1) rtWeekdays.splice(i,1); }
+  else rtWeekdays.push(n);
+  rtWeekdays.sort(function(a,b){return a-b;});
+  renderRtWeekdays();
+}
+function setRtWeekdays(arr){ rtWeekdays=arr.slice(); renderRtWeekdays(); }
+function onRoutineFreqChange(){
+  var f=document.getElementById('rt-freq').value;
+  document.getElementById('rt-weekday-row').style.display=(f==='monthly')?'none':'';
+  document.getElementById('rt-monthly-row').style.display=(f==='monthly')?'flex':'none';
+  document.getElementById('rt-wd-preset').style.display=(f==='daily')?'':'none';
+  document.getElementById('routine-modal-sub').textContent=
+    f==='daily'?'매일(또는 평일마다) 반복되는 업무예요':
+    f==='weekly'?'매주 정해진 요일에 반복되는 업무예요':
+                 '매달 같은 날 반복되는 업무를 등록해요';
+  if(f==='daily'&&rtWeekdays.length<5) setRtWeekdays([1,2,3,4,5]);
+  if(f==='weekly'&&rtWeekdays.length>2) setRtWeekdays([rtWeekdays[0]]);
+  renderRtWeekdays();
+}
 function openRoutineModal(id,presetDay,presetPerson){
   routineEditId=id||null;
   var rule=id?(allData._routines||[]).find(function(r){return String(r.id)===String(id);}):null;
   document.getElementById('routine-modal-title').textContent=rule?'반복 업무 수정':'반복 업무 추가';
-  document.getElementById('routine-modal-sub').textContent=rule?routineWhenLabel(rule)+' · '+rule.person:'매달 같은 날 반복되는 업무를 등록해요';
   document.getElementById('rt-task').value=rule?rule.task:'';
   document.getElementById('rt-person').value=rule?rule.person:(presetPerson||PERSONS[0]);
+  document.getElementById('rt-freq').value=rule?routineFreqOf(rule):(presetDay?'monthly':'daily');
+  rtWeekdays=rule?parseWeekdays(rule):[1,2,3,4,5];
   document.getElementById('rt-daytype').value=rule?rule.dayType:'day';
   document.getElementById('rt-day').value=rule?(rule.dayOfMonth||1):(presetDay||1);
   document.getElementById('rt-shift').value=rule?rule.weekendShift:'none';
@@ -2144,6 +2274,8 @@ function openRoutineModal(id,presetDay,presetPerson){
   document.getElementById('rt-save-btn').textContent='저장';
   document.getElementById('rt-save-btn').disabled=false;
   onRoutineDayTypeChange();
+  onRoutineFreqChange();
+  if(rule) document.getElementById('routine-modal-sub').textContent=routineWhenLabel(rule)+' · '+rule.person;
   document.getElementById('routine-modal-bg').classList.add('open');
   setTimeout(function(){document.getElementById('rt-task').focus();},100);
 }
@@ -2154,9 +2286,12 @@ async function saveRoutine(){
   if(routineSaving) return;
   var task=document.getElementById('rt-task').value.trim();
   if(!task){showToast('업무 내용을 입력하세요');return;}
+  var freq=document.getElementById('rt-freq').value;
   var payload={
     person:document.getElementById('rt-person').value,
     task:task,
+    freq:freq,
+    weekdays:(freq==='monthly')?null:rtWeekdays.slice().sort(function(a,b){return a-b;}).join(','),
     day_type:document.getElementById('rt-daytype').value,
     day_of_month:parseInt(document.getElementById('rt-day').value||'1',10),
     weekend_shift:document.getElementById('rt-shift').value,
@@ -2172,6 +2307,7 @@ async function saveRoutine(){
       if(res.error) throw res.error;
       var r=(allData._routines||[]).find(function(x){return String(x.id)===String(routineEditId);});
       if(r){r.person=payload.person;r.task=payload.task;r.dayType=payload.day_type;
+        r.freq=payload.freq;r.weekdays=payload.weekdays||'';
         r.dayOfMonth=payload.day_of_month;r.weekendShift=payload.weekend_shift;
         r.note=payload.note;r.active=payload.active;}
     } else {
@@ -2180,6 +2316,7 @@ async function saveRoutine(){
       if(ins.error) throw ins.error;
       allData._routines=allData._routines||[];
       allData._routines.push({id:String(ins.data.id),person:payload.person,task:payload.task,
+        freq:payload.freq,weekdays:payload.weekdays||'',
         dayType:payload.day_type,dayOfMonth:payload.day_of_month,weekendShift:payload.weekend_shift,
         note:payload.note,active:payload.active});
     }
