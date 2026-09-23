@@ -577,6 +577,40 @@ body{background:var(--bg-canvas)}
 .mrb-text{cursor:pointer}
 .mrb-when{font-size:11px;color:var(--text-tertiary)}
 .mrb-empty{font-size:12px;color:var(--text-tertiary);padding-top:3px}
+/* 월간 달력 */
+.mo-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md,10px);overflow:hidden;margin:0 16px 14px}
+.mo-dow{background:var(--bg-subtle);text-align:center;font-size:11px;font-weight:700;color:var(--text-secondary);padding:7px 0}
+.mo-dow.sun{color:#C8392E}
+.mo-dow.sat{color:#1A5FA8}
+.mo-cell{background:var(--bg-surface);min-height:104px;padding:6px 7px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:background .1s}
+.mo-cell:hover{background:var(--bg-subtle)}
+.mo-cell.out{background:var(--bg-subtle);cursor:default}
+.mo-cell.out:hover{background:var(--bg-subtle)}
+.mo-cell.today{background:#FFF8F5}
+.mo-cell.today:hover{background:#FFF1EB}
+.mo-num{font-size:12px;font-weight:700;color:var(--text-secondary);line-height:18px;margin-bottom:2px}
+.mo-cell.sun .mo-num{color:#C8392E}
+.mo-cell.sat .mo-num{color:#1A5FA8}
+.mo-today-dot{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--brand);color:#fff;padding:0 5px}
+.mo-p{display:flex;align-items:center;gap:5px;font-size:11.5px;line-height:17px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-p b{color:var(--text-primary);font-weight:600}
+.mo-cnt{color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.mo-p.all-done .mo-cnt{color:#1B8E4D}
+.mo-p.all-done b{color:var(--text-tertiary)}
+.mo-dotmark{flex:none;width:5px;height:5px;border-radius:50%;background:var(--border-strong)}
+.mo-p.has-left .mo-dotmark{background:var(--brand)}
+.mo-t{font-size:11.5px;line-height:17px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.mo-box{flex:none;width:9px;height:9px;border:1.5px solid var(--border-strong);border-radius:2px;box-sizing:border-box}
+.mo-t.rt .mo-box{border-radius:50%}
+.mo-t.done{color:var(--text-tertiary);text-decoration:line-through}
+.mo-t.done .mo-box{background:#1B8E4D;border-color:#1B8E4D}
+.mo-more{font-size:11px;color:var(--text-tertiary);line-height:16px}
+.mo-person-filter{display:flex;gap:4px;flex-wrap:wrap}
+.mo-person-filter button{border:1px solid var(--border-default);background:var(--bg-surface);border-radius:var(--radius-sm);padding:4px 11px;font-size:12px;color:var(--text-secondary);cursor:pointer}
+.mo-person-filter button:hover{background:var(--bg-subtle)}
+.mo-person-filter button.on{background:#1F2937;border-color:#1F2937;color:#fff;font-weight:700}
+.mo-legend{font-size:11px;color:var(--text-tertiary);padding:0 16px 22px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.mo-legend .mo-box,.mo-legend .mo-dotmark{display:inline-block;vertical-align:middle;margin-right:4px}
 </style>
 </head>
 <body>
@@ -588,7 +622,8 @@ body{background:var(--bg-canvas)}
     <nav class="nav">
       <div class="nav-group">
         <div class="nav-label">워크스페이스</div>
-        <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">오늘 대시보드</button>
+        <button class="tab-btn active" id="tab-monthly" onclick="switchTab('monthly')">월간</button>
+        <button class="tab-btn" id="tab-dashboard" onclick="switchTab('dashboard')">오늘 대시보드</button>
         <button class="tab-btn" id="tab-history" onclick="switchTab('history')">업무 히스토리</button>
         <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">반복 업무</button>
         <button class="tab-btn" id="tab-cells" onclick="switchTab('cells')">셀현황</button>
@@ -620,7 +655,8 @@ body{background:var(--bg-canvas)}
       </div>
     </header>
     <main class="views">
-  <div id="view-dashboard"><div id="content"><div class="loading"><div class="spinner"></div>데이터 불러오는 중...</div></div></div>
+  <div id="view-monthly"><div id="monthly-content"></div></div>
+  <div id="view-dashboard" style="display:none"><div id="content"><div class="loading"><div class="spinner"></div>데이터 불러오는 중...</div></div></div>
   <div id="view-matrix-정희진" style="display:none"><div id="matrix-content-정희진"></div></div>
   <div id="view-matrix-박현아" style="display:none"><div id="matrix-content-박현아"></div></div>
   <div id="view-matrix-전윤정" style="display:none"><div id="matrix-content-전윤정"></div></div>
@@ -636,18 +672,17 @@ body{background:var(--bg-canvas)}
 <div class="notice-bg" id="notice-bg">
   <div class="notice-box">
     <div class="notice-tag">업데이트</div>
-    <div class="notice-h">반복 업무에 데일리·주간이 생겼어요</div>
+    <div class="notice-h">한 달을 한눈에 보는 「월간」이 생겼어요</div>
     <div class="notice-date">2026년 9월 23일</div>
-    <p>매달 하는 일만 등록할 수 있던 걸, <b>매일 하는 일과 매주 하는 일</b>도 등록할 수 있게 바꿨습니다. 탭 이름도 「월간 반복 업무」에서 <b>「반복 업무」</b>로 바뀌었어요.</p>
+    <p>대시보드를 열면 이제 <b>월간</b> 달력이 먼저 보입니다. 그달에 누가 무엇을 하는지 한 화면에 펼쳐져요. 오늘 하루만 보려면 왼쪽 <b>오늘 대시보드</b>를 누르시면 예전 그대로입니다.</p>
     <ul class="notice-list">
-      <li><b>반복 업무</b> 탭 → <b>+ 반복 업무 추가</b> → <b>반복 주기</b>에서 데일리·주간·월간 중에 고르시면 됩니다</li>
-      <li>데일리는 <b>평일만</b> 버튼을 누르면 월~금이 한 번에 켜집니다. 매일 해야 하면 <b>매일</b>을 누르세요</li>
-      <li>내 카드에는 <b>그날 것 한 줄만</b> 올라옵니다. 며칠 밀리면 <b>“3일 밀림”</b>으로 표시돼요</li>
-      <li>업무가 많으면 <b>업무별</b> 보기가 편합니다. 한 줄에 한 달치 체크가 가로로 깔려요</li>
+      <li>날짜 칸에는 <b>그날 할 일이 있는 분만</b> 이름과 <b>(완료/전체)</b>로 뜹니다</li>
+      <li><b>날짜를 누르면</b> 그날 대시보드로 넘어갑니다. 지난 날짜도 그대로 열려요</li>
+      <li>위쪽 <b>전체 · 이름</b> 버튼으로 한 사람만 볼 수 있어요. 한 사람을 고르면 이름 대신 <b>업무 제목</b>이 보입니다</li>
+      <li>못 끝낸 일은 <b>그 날짜 칸에 그대로 남습니다.</b> 완료하면 취소선으로 바뀌고 자리는 지킵니다</li>
     </ul>
-    <p><b>이미 등록해두신 월간 업무와 완료 기록은 그대로입니다.</b> 아무것도 다시 만드실 필요 없어요.</p>
-    <div class="notice-note">같은 일을 날짜만 바꿔 여러 건 등록해 두셨다면(예: 7일·14일·21일·28일) 이제 <b>주간</b> 한 건으로 합칠 수 있습니다. 합치면 예전 규칙의 완료 기록은 따라오지 않으니, 필요하시면 말씀해주세요.<br><br>
-    <b>규칙은 등록한 날부터 생깁니다.</b> 지난 날짜로 거슬러 만들어지지 않아요. 어느 날짜를 걸렀는지는 반복 업무 탭 표에서 보입니다.</div>
+    <div class="notice-note">달력에 보이는 범위는 <b>오늘 대시보드와 같습니다.</b> 우선순위를 아직 안 정한 일감(미분류)은 기본으로 숨어 있어요. 오른쪽 위 <b>미분류 보이기</b>를 누르면 달력에도 같이 나옵니다.<br><br>
+    <b>휴가는 아직 안 들어갔습니다.</b> 누가 언제 쉬는지도 이 달력에 함께 보이게 하는 건 다음 작업으로 준비 중이에요.</div>
     <div class="notice-btns"><button onclick="closeNotice()">확인했어요</button></div>
   </div>
 </div>
@@ -843,7 +878,7 @@ var PRIORITY_SHORT={DO:'🔴 DO',DELEGATE:'🟡 위임',SCHEDULE:'🔵 예정',E
 var PRIORITY_ORDER={DO:0,DELEGATE:1,SCHEDULE:2,ELIMINATE:3,'':4};
 var curDate=new Date(); curDate.setHours(0,0,0,0);
 var allData={}, checks={}, autolabChecks={};
-var currentTab='dashboard';
+var currentTab='monthly';
 var showDoneDashboard=true;
 var showDoneMatrix=false;
 var showDone=true;
@@ -923,7 +958,7 @@ function toggleShowDone(){
 }
 function switchTab(tab){
   currentTab=tab;
-  var allTabs=['dashboard','matrix-정희진','matrix-박현아','matrix-전윤정','matrix-강라영','history','routine','cells','guide'];
+  var allTabs=['monthly','dashboard','matrix-정희진','matrix-박현아','matrix-전윤정','matrix-강라영','history','routine','cells','guide'];
   allTabs.forEach(function(t){
     document.getElementById('tab-'+t).className='tab-btn'+(tab===t?' active':'');
     document.getElementById('view-'+t).style.display=tab===t?'':'none';
@@ -931,12 +966,13 @@ function switchTab(tab){
   document.getElementById('date-nav-wrap').style.display=tab==='dashboard'?'flex':'none';
   var showToggleBtn=tab==='dashboard'||tab.startsWith('matrix-');
   document.getElementById('toggle-done-btn').style.display=showToggleBtn?'block':'none';
-  document.getElementById('toggle-unclassified-btn').style.display=tab==='dashboard'?'block':'none';
+  document.getElementById('toggle-unclassified-btn').style.display=(tab==='dashboard'||tab==='monthly')?'block':'none';
   if(tab==='dashboard'){showDone=showDoneDashboard;}
   else if(tab.startsWith('matrix-')){showDone=showDoneMatrix;}
   var btn=document.getElementById('toggle-done-btn');
   btn.textContent=showDone?'완료 숨기기':'완료 보이기';
   btn.className='toggle-done-btn'+(showDone?' active':'');
+  if(tab==='monthly') renderMonthly();
   if(tab==='history') renderHistory();
   if(tab==='routine') renderRoutine();
   if(tab==='cells') renderCellStatus();
@@ -1085,6 +1121,141 @@ function render(){
   html+='</div>';
 
   document.getElementById('content').innerHTML=html;
+  if(currentTab==='monthly') renderMonthly();   // 월간 탭이 열려 있으면 같이 갱신
+}
+
+// =============================================
+// 월간 달력
+// 구글 캘린더 태스크 방식 — 미완료는 그 날짜 칸에 그대로 남고,
+// 완료하면 취소선으로 바뀐다. 오늘 칸으로 끌어오지 않는다.
+// =============================================
+var monthlyMonth=new Date(); monthlyMonth.setDate(1); monthlyMonth.setHours(0,0,0,0);
+var monthlyPerson='';        // ''=전체
+var MO_MAX_LINES=4;
+
+function moEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function changeMonthlyMonth(delta){
+  monthlyMonth=new Date(monthlyMonth.getFullYear(),monthlyMonth.getMonth()+delta,1);
+  renderMonthly();
+}
+function goMonthlyThisMonth(){
+  var n=new Date(); monthlyMonth=new Date(n.getFullYear(),n.getMonth(),1); renderMonthly();
+}
+function setMonthlyPerson(p){monthlyPerson=p;renderMonthly();}
+
+// 날짜 칸을 누르면 그날 대시보드로
+function openDayFromMonthly(key){
+  var d=new Date(key+'T00:00:00'); d.setHours(0,0,0,0);
+  curDate=d;
+  switchTab('dashboard');
+  render();
+}
+
+// 그 달의 날짜별 항목 — 일반 일감(start_date 기준) + 반복 업무 인스턴스
+function monthlyEntriesFor(y,m){
+  var ym=ymKey(new Date(y,m,1)),byDate={};
+  function bucket(k){return byDate[k]||(byDate[k]=[]);}
+  (allData._autolab||[]).forEach(function(item){
+    if(!showUnclassified&&item.priority==='') return;          // 오늘 대시보드와 같은 규칙
+    if(monthlyPerson&&item.person!==monthlyPerson) return;
+    var k=item.dateKey||'';
+    if(k.slice(0,7)!==ym) return;
+    bucket(k).push({kind:'task',person:item.person,text:item.task,
+      done:!!(autolabChecks[alKey(item)]||{}).checked});
+  });
+  routineInstancesFor(y,m).forEach(function(i){
+    if(monthlyPerson&&i.rule.person!==monthlyPerson) return;
+    bucket(i.dateKey).push({kind:'routine',person:i.rule.person,text:i.rule.task,
+      done:!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked});
+  });
+  return byDate;
+}
+
+// 전체 보기 = 사람별 (완료/전체) · 한 명 선택 = 업무 제목
+function monthlyCellBody(list){
+  if(!list.length) return '';
+  var h='';
+  if(monthlyPerson===''){
+    var agg={},order=[];
+    list.forEach(function(e){
+      var p=e.person||'미지정';
+      if(!agg[p]){agg[p]={t:0,d:0};order.push(p);}
+      agg[p].t++; if(e.done) agg[p].d++;
+    });
+    var names=PERSONS.filter(function(p){return !!agg[p];})
+      .concat(order.filter(function(p){return PERSONS.indexOf(p)<0;}));
+    names.forEach(function(p){
+      var a=agg[p],left=a.t-a.d;
+      h+='<div class="mo-p'+(left?' has-left':' all-done')+'" title="'+moEsc(p)+' '+a.d+'/'+a.t+'">'
+        +'<span class="mo-dotmark"></span><b>'+moEsc(p)+'</b>'
+        +'<span class="mo-cnt">('+a.d+'/'+a.t+')</span></div>';
+    });
+  } else {
+    var sorted=list.slice().sort(function(a,b){return (a.done?1:0)-(b.done?1:0);});
+    sorted.slice(0,MO_MAX_LINES).forEach(function(e){
+      h+='<div class="mo-t'+(e.done?' done':'')+(e.kind==='routine'?' rt':'')+'" title="'+moEsc(e.text)+'">'
+        +'<span class="mo-box"></span>'+moEsc(e.text)+'</div>';
+    });
+    if(sorted.length>MO_MAX_LINES)
+      h+='<div class="mo-more">+'+(sorted.length-MO_MAX_LINES)+'건</div>';
+  }
+  return h;
+}
+
+function renderMonthly(){
+  var y=monthlyMonth.getFullYear(),m=monthlyMonth.getMonth();
+  var todayKey=dk(new Date());
+  var byDate=monthlyEntriesFor(y,m);
+
+  var total=0,done=0;
+  Object.keys(byDate).forEach(function(k){
+    byDate[k].forEach(function(e){total++; if(e.done) done++;});
+  });
+
+  var html='<div class="routine-toolbar">';
+  html+='<div class="routine-month">';
+  html+='<button onclick="changeMonthlyMonth(-1)" aria-label="이전 달">◀</button>';
+  html+='<span class="routine-month-label">'+y+'년 '+(m+1)+'월</span>';
+  html+='<button onclick="changeMonthlyMonth(1)" aria-label="다음 달">▶</button>';
+  html+='<button onclick="goMonthlyThisMonth()" style="width:auto;padding:0 10px;font-size:11px">이번 달</button>';
+  html+='</div>';
+  html+='<span class="routine-summary">'+(total?('완료 '+done+' / '+total+'건'):'이번 달은 등록된 일이 없어요')+'</span>';
+  html+='<div class="mo-person-filter">';
+  html+='<button class="'+(monthlyPerson===''?'on':'')+'" onclick="setMonthlyPerson(\'\')">전체</button>';
+  PERSONS.forEach(function(p){
+    html+='<button class="'+(monthlyPerson===p?'on':'')+'" onclick="setMonthlyPerson(\''+p+'\')">'+p+'</button>';
+  });
+  html+='</div></div>';
+
+  var first=new Date(y,m,1),lead=first.getDay(),last=lastDayOf(y,m);
+  var cellCount=Math.ceil((lead+last)/7)*7;
+  html+='<div class="mo-grid">';
+  DAYS.forEach(function(n,idx){
+    html+='<div class="mo-dow'+(idx===0?' sun':idx===6?' sat':'')+'">'+n+'</div>';
+  });
+  for(var c=0;c<cellCount;c++){
+    var dayNum=c-lead+1;
+    if(dayNum<1||dayNum>last){ html+='<div class="mo-cell out"></div>'; continue; }
+    var d=new Date(y,m,dayNum),k=dk(d),dow=d.getDay();
+    var cls='mo-cell'+(dow===0?' sun':dow===6?' sat':'')+(k===todayKey?' today':'');
+    html+='<div class="'+cls+'" onclick="openDayFromMonthly(\''+k+'\')">';
+    html+='<div class="mo-num">'+(k===todayKey?'<span class="mo-today-dot">'+dayNum+'</span>':dayNum)+'</div>';
+    html+=monthlyCellBody(byDate[k]||[]);
+    html+='</div>';
+  }
+  html+='</div>';
+
+  html+='<div class="mo-legend">';
+  html+='<span>날짜를 누르면 그날 대시보드로 갑니다</span>';
+  html+='<span><span class="mo-box"></span>일감</span>';
+  html+='<span><span class="mo-box" style="border-radius:50%"></span>반복 업무</span>';
+  html+='<span>완료한 일은 취소선으로 그 날짜에 남습니다</span>';
+  html+='</div>';
+
+  document.getElementById('monthly-content').innerHTML=html;
 }
 
 // =============================================
@@ -1418,12 +1589,25 @@ function renderGuide(){
 
   h+='<h2>탭별로 무엇을 하나요</h2>';
   h+='<table><thead><tr><th>탭</th><th>쓰는 때</th></tr></thead><tbody>';
+  h+='<tr><td><b>월간</b></td><td>한 달을 한눈에 볼 때. 그달에 누가 무슨 날 무엇을 하는지 달력으로 펼쳐집니다. 날짜를 누르면 그날 대시보드로 넘어가요.</td></tr>';
   h+='<tr><td><b>오늘 대시보드</b></td><td>아침에 한 번. 내 카드에서 오늘 할 일을 확인하고, 끝낸 건 체크합니다. 위쪽 화살표로 날짜를 옮겨 어제 것도 볼 수 있어요.</td></tr>';
   h+='<tr><td><b>업무 히스토리</b></td><td>주간 회의나 월말에. 사람별, 기간별로 무엇을 했는지 돌아봅니다.</td></tr>';
   h+='<tr><td><b>반복 업무</b></td><td>매일·매주·매달 돌아오는 일을 등록하고 체크합니다. 달력처럼 한 달치가 펼쳐집니다.</td></tr>';
   h+='<tr><td><b>셀현황</b></td><td>테크니션이 어느 팀에 몇 명 있는지 봅니다. 시트를 그대로 읽어오는 거라 항상 최신이에요. 여기서는 수정이 안 됩니다.</td></tr>';
   h+='<tr><td><b>우선순위 매트릭스</b></td><td>일감을 등록하고 급한 정도, 중요한 정도로 나눕니다. 네 칸 사이를 끌어다 옮길 수 있어요.</td></tr>';
   h+='</tbody></table>';
+
+  h+='<h2>월간 — 한 달을 한눈에</h2>';
+  h+='<p>대시보드를 열면 <b>월간</b>이 먼저 보입니다. 그달 전체가 달력으로 펼쳐지고, <b>할 일이 있는 날에만</b> 내용이 찹니다. 빈 칸은 그날 등록된 일이 없다는 뜻이에요.</p>';
+  h+='<table><thead><tr><th>보기</th><th>날짜 칸에 보이는 것</th></tr></thead><tbody>';
+  h+='<tr><td><b>전체</b></td><td>그날 할 일이 있는 사람만 <b>이름 (완료/전체)</b>로. 예를 들어 <b>박현아 (0/11)</b>이면 그날 11건 중 아직 0건 했다는 뜻입니다</td></tr>';
+  h+='<tr><td><b>이름 하나</b></td><td>그 사람의 <b>업무 제목</b>이 줄줄이. 네 줄까지 보이고 더 있으면 <b>+3건</b>으로 접힙니다</td></tr>';
+  h+='</tbody></table>';
+  h+='<p><b>날짜를 누르면 그날 대시보드로 넘어갑니다.</b> 지난 날짜도 열리고, 거기서 체크하면 달력에도 바로 반영돼요.</p>';
+  h+='<h3>못 끝낸 일은 그 날짜에 남습니다</h3>';
+  h+='<p>달력은 <b>날짜 기록장</b>이라 구글 캘린더의 할 일과 같게 두었습니다. 못 끝낸 일은 오늘로 끌려오지 않고 <b>원래 날짜 칸에 그대로</b> 남고, 완료하면 <b>취소선</b>으로 바뀌면서 자리는 지킵니다. 그래서 어느 날이 비었고 어느 날이 밀렸는지가 그대로 보여요.</p>';
+  h+='<div class="note"><b>그래서 건수가 오늘 대시보드와 다를 수 있습니다.</b> 달력의 <b>18일 (1/1)</b>은 <i>그날 등록된</i> 일이 1건이라는 뜻이고, 그 칸을 눌러 들어간 <b>오늘 대시보드</b>에는 <i>앞 날짜에서 못 끝내고 넘어온 일</i>까지 같이 올라옵니다. 달력은 <i>날짜 기록장</i>, 카드는 <i>지금 할 일 목록</i>이라 세는 기준이 다른 거예요.<br><br>같은 이유로 밀린 반복 업무도 내 카드에서는 한 줄로 접히지만, 달력에서는 걸른 날짜가 그대로 남습니다.</div>';
+  h+='<p>보이는 범위는 오늘 대시보드와 같아요. 우선순위를 아직 안 정한 일감(<b>미분류</b>)은 기본으로 숨어 있고, 오른쪽 위 <b>미분류 보이기</b>를 누르면 달력에도 같이 나옵니다.</p>';
 
   h+='<h2>반복되는 업무는 한 번만 등록하세요</h2>';
   h+='<p>매일 하는 워크플로우 승인, 매주 금요일 정산, 매달 급여 이체처럼 정해진 주기로 돌아오는 일이요. <b>반복 업무</b> 탭에서 <b>+ 반복 업무 추가</b>를 누르고 <b>반복 주기</b>부터 고릅니다.</p>';
@@ -1492,6 +1676,7 @@ function renderGuide(){
 
   h+='<h2>바뀐 것</h2>';
   h+='<div class="changelog">';
+  h+='<div class="cl-row"><span class="cl-date">9월 23일</span><span class="cl-body"><b>「월간」 탭이 생겼습니다.</b> 대시보드를 열면 한 달 달력이 먼저 보이고, 날짜를 누르면 그날 대시보드로 넘어갑니다. 위쪽 버튼으로 한 사람만 골라 볼 수도 있어요. 쓰는 법은 <b>위의 "월간 — 한 달을 한눈에"</b>를 보세요.</span></div>';
   h+='<div class="cl-row"><span class="cl-date">9월 23일</span><span class="cl-body"><b>반복 업무에 데일리·주간이 생겼습니다.</b> 매일 하는 일, 매주 하는 일도 등록할 수 있어요. 탭 이름도 "월간 반복 업무"에서 "반복 업무"로 바꿨습니다. 등록해두신 월간 업무와 완료 기록은 그대로예요. 쓰는 법은 <b>위의 "반복되는 업무는 한 번만 등록하세요"</b>를 보세요.</span></div>';
   h+='<div class="cl-row"><span class="cl-date">9월 16일</span><span class="cl-body">대시보드를 열었습니다. 사용법 탭과 일감 삭제 기능을 넣었어요.</span></div>';
   h+='</div>';
@@ -2298,7 +2483,7 @@ function routineDueHtml(key){
 }
 
 // ---- 규칙 모달 ----
-var NOTICE_KEY='biz_notice_20260923';
+var NOTICE_KEY='biz_notice_20260923_monthly';
 function noticeSeen(){try{return localStorage.getItem(NOTICE_KEY)==='1';}catch(e){return false;}}
 function showNotice(){
   if(noticeSeen()) return;              // 한 번 확인하면 다시 뜨지 않는다
@@ -2430,6 +2615,7 @@ async function deleteRoutine(){
   closeRoutineModal(); renderRoutine(); render(); showToast('삭제됐어요!');
 }
 
+switchTab('monthly');
 loadData();
 </script>
 </body>
