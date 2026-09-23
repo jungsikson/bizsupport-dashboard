@@ -605,6 +605,24 @@ body{background:var(--bg-canvas)}
 .mo-t.done{color:var(--text-tertiary);text-decoration:line-through}
 .mo-t.done .mo-box{background:#1B8E4D;border-color:#1B8E4D}
 .mo-more{font-size:11px;color:var(--text-tertiary);line-height:16px}
+.mo-vac{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:2px}
+/* 휴가 표식 — 날짜+사람이 같이 나오는 화면 공통 */
+.vac-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;line-height:18px;padding:0 6px;border-radius:5px;background:#E3EDFA;color:#17539A;white-space:nowrap}
+.vac-badge.part{background:#EEF4FC;color:#3C72B8}
+.rt-cell-vac{margin-bottom:3px}
+.rt-task-table td.slot.vac{background:#EAF2FC}
+.rt-task-table td.slot.vac.wk{background:#E1EBF7}
+.hist-vac{margin-left:6px}
+/* 전사휴무(공휴일) */
+.hol-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;line-height:18px;padding:0 6px;border-radius:5px;background:#FBE4E1;color:#B3261E;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.date-hol,.rt-day-hol{margin-left:6px}
+.mo-cell.hol{background:#FFFAF9}
+.mo-cell.hol:hover{background:#FFF4F2}
+.mo-cell.hol .mo-num{color:#B3261E}
+.mo-hol{margin-bottom:2px}
+.rt-task-table td.slot.hol{background:#FBEFED}
+.rt-task-table th.hol{color:#B3261E}
+.mo-chip{display:inline-flex;align-items:center;max-width:100%;font-size:10.5px;font-weight:600;line-height:16px;padding:0 5px;border-radius:4px;background:#E3EDFA;color:#17539A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mo-person-filter{display:flex;gap:4px;flex-wrap:wrap}
 .mo-person-filter button{border:1px solid var(--border-default);background:var(--bg-surface);border-radius:var(--radius-sm);padding:4px 11px;font-size:12px;color:var(--text-secondary);cursor:pointer}
 .mo-person-filter button:hover{background:var(--bg-subtle)}
@@ -682,7 +700,7 @@ body{background:var(--bg-canvas)}
       <li>못 끝낸 일은 <b>그 날짜 칸에 그대로 남습니다.</b> 완료하면 취소선으로 바뀌고 자리는 지킵니다</li>
     </ul>
     <div class="notice-note">달력에 보이는 범위는 <b>오늘 대시보드와 같습니다.</b> 우선순위를 아직 안 정한 일감(미분류)은 기본으로 숨어 있어요. 오른쪽 위 <b>미분류 보이기</b>를 누르면 달력에도 같이 나옵니다.<br><br>
-    <b>휴가는 아직 안 들어갔습니다.</b> 누가 언제 쉬는지도 이 달력에 함께 보이게 하는 건 다음 작업으로 준비 중이에요.</div>
+    <b>휴가와 공휴일도 같이 보입니다.</b> Flex에서 승인된 휴가는 <b>파란 딱지</b>, 추석·개천절 같은 전사휴무는 <b>빨간 딱지</b>로 뜹니다. 반차·시간차는 시간까지 나와요. 아직 승인 전인 휴가는 안 보입니다.<br><br>    이 딱지는 월간 달력뿐 아니라 <b>오늘 대시보드·반복 업무 표·업무 히스토리</b>에도 같이 붙습니다.</div>
     <div class="notice-btns"><button onclick="closeNotice()">확인했어요</button></div>
   </div>
 </div>
@@ -991,12 +1009,26 @@ async function loadData(){
       _sb.from('biz_check').select('*'),
       _sb.from('biz_comment').select('*').order('id'),
       _sb.from('biz_routine').select('*').order('id'),
+      _sb.from('biz_vacation').select('*').order('date'),
+      _sb.from('biz_holiday').select('*').order('date'),
     ]);
     var taskRes=results[0],checkRes=results[1],commentRes=results[2],routineRes=results[3];
+    var vacRes=results[4],holRes=results[5];
     if(taskRes.error) throw taskRes.error;
 
     var todayKey=dk(new Date());
     var data={};
+
+    // 전사휴무 — 날짜 → 이름 맵. 곁다리라 실패해도 나머지를 막지 않는다
+    data._holidayMap={};
+    (holRes&&!holRes.error?(holRes.data||[]):[]).forEach(function(row){
+      data._holidayMap[String(row.date)]=row.name||'전사휴무';
+    });
+
+    // 휴가는 곁다리라 실패해도 나머지를 막지 않는다 (동기화 잡이 아직 안 돌았을 수 있다)
+    data._vacations=(vacRes&&!vacRes.error?(vacRes.data||[]):[]).map(function(row){
+      return {person:row.person,dateKey:row.date,start:row.start_time||'',end:row.end_time||''};
+    });
 
     data._routines=(routineRes.data||[]).map(function(row){
       return {id:String(row.id),person:row.person,task:row.task,
@@ -1076,6 +1108,7 @@ function _buildPersonCardHtml(person,key){
   h+='<div class="person-autolab-header">';
   h+='<div class="person-id"><span class="person-autolab-name">'+person+'</span></div>';
   h+='<div class="person-meta">';
+  h+=vacBadgeHtml(person,key);            // 그날 휴가면 딱지
   if(overdueCount>0) h+='<span class="tag tag-danger">이월 '+overdueCount+'</span>';
   if(totalCount>0) h+='<span class="person-count"><b>'+doneCount+'</b><span class="person-count-sep">/</span>'+totalCount+'</span>';
   h+='</div></div>';
@@ -1112,7 +1145,7 @@ function _buildPersonCardHtml(person,key){
 }
 function render(){
   var key=dk(curDate);
-  document.getElementById('date-label').textContent=dDisp(curDate);
+  document.getElementById('date-label').innerHTML=moEsc(dDisp(curDate))+holBadgeHtml(key,'date-hol');
   var autolab=allData._autolab||[];
   var html='';
 
@@ -1174,6 +1207,70 @@ function monthlyEntriesFor(y,m){
   return byDate;
 }
 
+// ── 전사휴무 조회 (공통) ────────────────────────────────────────────
+// 출처는 national_holiday 마스터 — VacationAudit.js가 매일 09시에 biz_holiday로 옮긴다.
+function holidayOn(dateKey){
+  return (allData._holidayMap||{})[String(dateKey)]||'';
+}
+function holBadgeHtml(dateKey,extraClass){
+  var n=holidayOn(dateKey);
+  if(!n) return '';
+  return '<span class="hol-badge'+(extraClass?' '+extraClass:'')+'" '
+    +'title="전사휴무 — '+moEsc(n)+'">'+moEsc(n)+'</span>';
+}
+
+// ── 휴가 조회 (공통) ────────────────────────────────────────────────
+// 날짜와 사람이 함께 나오는 화면은 전부 이 세 함수를 쓴다.
+// 출처는 biz_vacation — VacationAudit.js가 #trive_vacation에서 매일 09시에 맞춘다.
+function vacationsFor(person,dateKey){
+  var out=[];
+  (allData._vacations||[]).forEach(function(v){
+    if(v.person!==person) return;
+    if(String(v.dateKey)!==dateKey) return;
+    out.push(v);
+  });
+  return out.sort(function(a,b){return (a.start||'').localeCompare(b.start||'');});
+}
+function vacTextOf(list){
+  if(!list||!list.length) return '';
+  return list.map(function(v){return v.start?(v.start+'~'+v.end):'휴가';}).join(' · ');
+}
+// 종일이면 진한 딱지, 반차·시간차면 옅은 딱지
+function vacBadgeHtml(person,dateKey,extraClass){
+  var list=vacationsFor(person,dateKey);
+  if(!list.length) return '';
+  var txt=vacTextOf(list);
+  var part=list.every(function(v){return !!v.start;});
+  return '<span class="vac-badge'+(part?' part':'')+(extraClass?' '+extraClass:'')+'" '
+    +'title="'+moEsc(person+' '+txt)+'">'+moEsc(txt)+'</span>';
+}
+
+// 그 달의 날짜별 휴가 (biz_vacation — VacationAudit.js가 #trive_vacation에서 매일 09시 동기화)
+function monthlyVacationsFor(y,m){
+  var ym=ymKey(new Date(y,m,1)),by={};
+  (allData._vacations||[]).forEach(function(v){
+    if(monthlyPerson&&v.person!==monthlyPerson) return;
+    var k=String(v.dateKey||'');
+    if(k.slice(0,7)!==ym) return;
+    (by[k]=by[k]||[]).push(v);
+  });
+  return by;
+}
+
+function monthlyVacHtml(list){
+  if(!list||!list.length) return '';
+  var h='<div class="mo-vac">';
+  list.slice().sort(function(a,b){
+    return (a.start||'').localeCompare(b.start||'')||a.person.localeCompare(b.person);
+  }).forEach(function(v){
+    var when=v.start?(v.start+'~'+v.end):'휴가';
+    // 한 사람만 보고 있으면 이름은 군더더기
+    var label=monthlyPerson?when:(v.person+' '+when);
+    h+='<span class="mo-chip" title="'+moEsc(v.person+' '+when)+'">'+moEsc(label)+'</span>';
+  });
+  return h+'</div>';
+}
+
 // 전체 보기 = 사람별 (완료/전체) · 한 명 선택 = 업무 제목
 function monthlyCellBody(list){
   if(!list.length) return '';
@@ -1209,6 +1306,7 @@ function renderMonthly(){
   var y=monthlyMonth.getFullYear(),m=monthlyMonth.getMonth();
   var todayKey=dk(new Date());
   var byDate=monthlyEntriesFor(y,m);
+  var vacByDate=monthlyVacationsFor(y,m);
 
   var total=0,done=0;
   Object.keys(byDate).forEach(function(k){
@@ -1240,9 +1338,12 @@ function renderMonthly(){
     var dayNum=c-lead+1;
     if(dayNum<1||dayNum>last){ html+='<div class="mo-cell out"></div>'; continue; }
     var d=new Date(y,m,dayNum),k=dk(d),dow=d.getDay();
-    var cls='mo-cell'+(dow===0?' sun':dow===6?' sat':'')+(k===todayKey?' today':'');
+    var holName=holidayOn(k);
+    var cls='mo-cell'+(dow===0?' sun':dow===6?' sat':'')+(holName?' hol':'')+(k===todayKey?' today':'');
     html+='<div class="'+cls+'" onclick="openDayFromMonthly(\''+k+'\')">';
     html+='<div class="mo-num">'+(k===todayKey?'<span class="mo-today-dot">'+dayNum+'</span>':dayNum)+'</div>';
+    if(holName) html+='<div class="mo-hol">'+holBadgeHtml(k)+'</div>';
+    html+=monthlyVacHtml(vacByDate[k]);
     html+=monthlyCellBody(byDate[k]||[]);
     html+='</div>';
   }
@@ -1252,6 +1353,8 @@ function renderMonthly(){
   html+='<span>날짜를 누르면 그날 대시보드로 갑니다</span>';
   html+='<span><span class="mo-box"></span>일감</span>';
   html+='<span><span class="mo-box" style="border-radius:50%"></span>반복 업무</span>';
+  html+='<span><span class="mo-chip">휴가</span> 그날 쉬는 분</span>';
+  html+='<span><span class="hol-badge">전사휴무</span> 공휴일·전사 휴무일</span>';
   html+='<span>완료한 일은 취소선으로 그 날짜에 남습니다</span>';
   html+='</div>';
 
@@ -1312,7 +1415,9 @@ function renderHistory(){
       var dateLabel=(d.getMonth()+1)+'월 '+d.getDate()+'일('+DAYS[d.getDay()]+')';
       if(dateKey===todayKey) dateLabel='오늘 — '+dateLabel;
       html+='<div class="history-date-group">';
-      html+='<div class="history-date-label">'+dateLabel+' ('+dayItems.length+'건)</div>';
+      html+='<div class="history-date-label">'+dateLabel+' ('+dayItems.length+'건)'
+        +holBadgeHtml(dateKey,'hist-vac')
+        +vacBadgeHtml(historyPerson,dateKey,'hist-vac')+'</div>';
       undoneItems.forEach(function(item){
         html+='<div class="history-item">';
         html+='<div class="checkbox" style="cursor:pointer;flex-shrink:0" onclick="toggleAutolabCheckHistory(\''+item.id+'\',\''+dateKey+'\')"></div>';
@@ -1364,6 +1469,22 @@ function toggleAutolabCheckHistory(id,dateKey){
 var matrixAddingIn={};
 var matrixConfirming={};
 
+// 매트릭스는 날짜가 하나로 고정된 화면이 아니라, 다가오는 휴가를 요약해 보여준다
+function matrixVacHtml(person,fromKey){
+  var up=(allData._vacations||[]).filter(function(v){
+    return v.person===person&&String(v.dateKey)>=fromKey;
+  }).sort(function(a,b){return String(a.dateKey).localeCompare(String(b.dateKey));});
+  if(!up.length) return '';
+  var h='';
+  up.slice(0,3).forEach(function(v){
+    var when=v.start?(v.start+'~'+v.end):'휴가';
+    h+='<span class="vac-badge'+(v.start?' part':'')+'" style="margin-left:6px" '
+      +'title="'+moEsc(person+' '+v.dateKey+' '+when)+'">'+fmtShort(v.dateKey)+' '+moEsc(when)+'</span>';
+  });
+  if(up.length>3) h+='<span class="vac-badge part" style="margin-left:6px">+'+(up.length-3)+'</span>';
+  return h;
+}
+
 function renderMatrix(person){
   var autolab=allData._autolab||[];
   var personItems=autolab.filter(function(i){return i.person===person&&shouldShowAutolabMatrix(i);});
@@ -1411,7 +1532,9 @@ function renderMatrix(person){
   }
 
   var html='<div class="matrix-wrap">';
-  html+='<div class="matrix-head"><div class="matrix-title">'+person+' · 아이젠하워 매트릭스</div><div class="matrix-axis-note">세로 ↑ 중요도 · 가로 → 긴급도</div></div>';
+  html+='<div class="matrix-head"><div class="matrix-title">'+person+' · 아이젠하워 매트릭스'
+    +matrixVacHtml(person,key)+'</div>'
+    +'<div class="matrix-axis-note">세로 ↑ 중요도 · 가로 → 긴급도</div></div>';
   html+=matrixRoutineBandHtml(person);
   html+='<div class="matrix-grid">';
   html+=quadHtml('DO','Do First · 긴급+중요',quadrants['DO']||[]);
@@ -1607,6 +1730,24 @@ function renderGuide(){
   h+='<h3>못 끝낸 일은 그 날짜에 남습니다</h3>';
   h+='<p>달력은 <b>날짜 기록장</b>이라 구글 캘린더의 할 일과 같게 두었습니다. 못 끝낸 일은 오늘로 끌려오지 않고 <b>원래 날짜 칸에 그대로</b> 남고, 완료하면 <b>취소선</b>으로 바뀌면서 자리는 지킵니다. 그래서 어느 날이 비었고 어느 날이 밀렸는지가 그대로 보여요.</p>';
   h+='<div class="note"><b>그래서 건수가 오늘 대시보드와 다를 수 있습니다.</b> 달력의 <b>18일 (1/1)</b>은 <i>그날 등록된</i> 일이 1건이라는 뜻이고, 그 칸을 눌러 들어간 <b>오늘 대시보드</b>에는 <i>앞 날짜에서 못 끝내고 넘어온 일</i>까지 같이 올라옵니다. 달력은 <i>날짜 기록장</i>, 카드는 <i>지금 할 일 목록</i>이라 세는 기준이 다른 거예요.<br><br>같은 이유로 밀린 반복 업무도 내 카드에서는 한 줄로 접히지만, 달력에서는 걸른 날짜가 그대로 남습니다.</div>';
+  h+='<h3>휴가도 같이 보입니다</h3>';
+  h+='<p>Flex에서 승인된 휴가가 슬랙 <b>#trive_vacation</b>에 올라오면, 그다음 날 아침에 달력의 그 날짜로 <b>파란 딱지</b>가 붙습니다. 종일이면 <b>이름 휴가</b>, 반차·시간차면 <b>이름 10:00~13:00</b>처럼 시간까지 나와요. 누구에게 일을 부탁할지 정할 때 보시면 됩니다.</p>';
+  h+='<ul>'
+    +'<li><b>승인된 것만 보입니다.</b> 신청은 했는데 아직 승인 전이면 달력에 안 떠요</li>'
+    +'<li>하루에 한 번(아침 9시) 맞춥니다. 방금 승인된 휴가는 다음 날 보입니다</li>'
+    +'<li>휴가를 취소하면 다음 동기화 때 딱지도 같이 사라집니다</li>'
+    +'</ul>';
+  h+='<h3>공휴일은 빨간 딱지로</h3>';
+  h+='<p>추석·개천절처럼 회사가 통째로 쉬는 날은 <b>빨간 딱지</b>로 붙습니다. 야유회 같은 전사 휴무일도 같이 나와요. 출처는 회사 휴일 마스터라 따로 입력하실 게 없습니다.</p>';
+  h+='<h3>어느 화면에 붙나요</h3>';
+  h+='<table><thead><tr><th>화면</th><th>어디에</th></tr></thead><tbody>';
+  h+='<tr><td><b>월간</b></td><td>날짜 칸 위쪽. 공휴일은 날짜 숫자도 빨갛게 바뀝니다</td></tr>';
+  h+='<tr><td><b>오늘 대시보드</b></td><td>위쪽 날짜 옆(공휴일), 담당자 카드 이름 옆(휴가)</td></tr>';
+  h+='<tr><td><b>반복 업무</b></td><td>담당자별은 날짜 칸과 사람 칸에, 업무별은 그 날짜 칸이 옅게 칠해집니다</td></tr>';
+  h+='<tr><td><b>업무 히스토리</b></td><td>날짜 줄 옆</td></tr>';
+  h+='</tbody></table>';
+  h+='<div class="note">Flex에 안 올라간 휴가는 달력에도 안 옵니다. 슬랙 <b>#trive_vacation</b>에 본인 이름으로 알림이 떴는지 보시면 바로 알 수 있어요.</div>';
+
   h+='<p>보이는 범위는 오늘 대시보드와 같아요. 우선순위를 아직 안 정한 일감(<b>미분류</b>)은 기본으로 숨어 있고, 오른쪽 위 <b>미분류 보이기</b>를 누르면 달력에도 같이 나옵니다.</p>';
 
   h+='<h2>반복되는 업무는 한 번만 등록하세요</h2>';
@@ -1676,7 +1817,7 @@ function renderGuide(){
 
   h+='<h2>바뀐 것</h2>';
   h+='<div class="changelog">';
-  h+='<div class="cl-row"><span class="cl-date">9월 23일</span><span class="cl-body"><b>「월간」 탭이 생겼습니다.</b> 대시보드를 열면 한 달 달력이 먼저 보이고, 날짜를 누르면 그날 대시보드로 넘어갑니다. 위쪽 버튼으로 한 사람만 골라 볼 수도 있어요. 쓰는 법은 <b>위의 "월간 — 한 달을 한눈에"</b>를 보세요.</span></div>';
+  h+='<div class="cl-row"><span class="cl-date">9월 23일</span><span class="cl-body"><b>「월간」 탭이 생겼습니다.</b> 대시보드를 열면 한 달 달력이 먼저 보이고, 날짜를 누르면 그날 대시보드로 넘어갑니다. 위쪽 버튼으로 한 사람만 골라 볼 수도 있어요. 승인된 휴가는 파란 딱지, 공휴일은 빨간 딱지로 같이 보입니다. 이 딱지는 오늘 대시보드·반복 업무·업무 히스토리에도 붙습니다. 쓰는 법은 <b>위의 "월간 — 한 달을 한눈에"</b>를 보세요.</span></div>';
   h+='<div class="cl-row"><span class="cl-date">9월 23일</span><span class="cl-body"><b>반복 업무에 데일리·주간이 생겼습니다.</b> 매일 하는 일, 매주 하는 일도 등록할 수 있어요. 탭 이름도 "월간 반복 업무"에서 "반복 업무"로 바꿨습니다. 등록해두신 월간 업무와 완료 기록은 그대로예요. 쓰는 법은 <b>위의 "반복되는 업무는 한 번만 등록하세요"</b>를 보세요.</span></div>';
   h+='<div class="cl-row"><span class="cl-date">9월 16일</span><span class="cl-body">대시보드를 열었습니다. 사용법 탭과 일감 삭제 기능을 넣었어요.</span></div>';
   h+='</div>';
@@ -2216,7 +2357,7 @@ function routineGridByPerson(y,m,ym,last,inst,todayKey){
     var dayInst=byDay[day]||[];
     html+='<tr style="'+(weekend&&!dayInst.length?'opacity:0.45':'')+'">';
     var dStyle='font-weight:'+(isToday?'700':'500')+';color:'+(weekend?'#8A8F96':isToday?'#C2410C':'#46494F')+';'+(isToday?'background:#FFF3E8;':'');
-    html+='<td class="rt-day-cell" style="'+dStyle+'">'+(m+1)+'/'+day+'('+DAYS[d.getDay()]+')'+(isToday?' ◀':'')+'</td>';
+    html+='<td class="rt-day-cell" style="'+dStyle+'">'+(m+1)+'/'+day+'('+DAYS[d.getDay()]+')'+(isToday?' ◀':'')+holBadgeHtml(dKey,'rt-day-hol')+'</td>';
 
     PERSONS.forEach(function(p){
       var cell=dayInst.filter(function(i){return i.rule.person===p;});
@@ -2232,7 +2373,8 @@ function routineGridByPerson(y,m,ym,last,inst,todayKey){
         h+='</div>';
       });
       if(!h) h='<div class="rt-empty-hint">+</div>';
-      html+='<td class="rt-cell" onclick="openRoutineModal(null,'+day+',\''+p+'\')">'+h+'</td>';
+      var vb=vacBadgeHtml(p,dKey,'rt-cell-vac');
+      html+='<td class="rt-cell" onclick="openRoutineModal(null,'+day+',\''+p+'\')">'+vb+h+'</td>';
     });
     html+='</tr>';
   }
@@ -2248,12 +2390,13 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
   html+='<th class="rt-th-name">업무</th>';
   for(var d0=1;d0<=last;d0++){
     var dh=new Date(y,m,d0);
-    var hcls=dk(dh)===todayKey?'today':(isWeekendDay(dh)?'wk':'');
-    html+='<th class="'+hcls+'">'+d0+'<br><span style="font-weight:400;font-size:10px">'+DAYS[dh.getDay()]+'</span></th>';
+    var hKey=dk(dh),hHol=holidayOn(hKey);
+    var hcls=(hKey===todayKey?'today':(isWeekendDay(dh)?'wk':''))+(hHol?' hol':'');
+    html+='<th class="'+hcls+'"'+(hHol?' title="전사휴무 — '+moEsc(hHol)+'"':'')+'>'+d0+'<br><span style="font-weight:400;font-size:10px">'+DAYS[dh.getDay()]+'</span></th>';
   }
   html+='</tr></thead><tbody>';
 
-  function daySlots(group){
+  function daySlots(group,person){
     var byDay={};
     if(group) group.insts.forEach(function(i){byDay[i.day]=i;});
     var h='';
@@ -2261,11 +2404,16 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
       var d=new Date(y,m,day);
       var i=byDay[day];
       var isDone=i?!!(checks[routineCheckKey(i.rule.id,i.pk)]||{}).checked:false;
-      var cls='slot'+(isWeekendDay(d)?' wk':'')+(i?' hit':'')+(i&&isDone?' ok':'');
+      var vacList=person?vacationsFor(person,dk(d)):[];
+      var slotKey=dk(d),slotHol=holidayOn(slotKey);
+      var cls='slot'+(isWeekendDay(d)?' wk':'')+(slotHol?' hol':'')+(i?' hit':'')
+              +(i&&isDone?' ok':'')+(vacList.length?' vac':'');
+      var tipText=vacList.length?(person+' '+vacTextOf(vacList)):(slotHol?('전사휴무 — '+slotHol):'');
+      var tip=tipText?' title="'+moEsc(tipText)+'"':'';
       if(i){
-        h+='<td class="'+cls+'"><div class="checkbox'+(isDone?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+i.pk+'\')">'+(isDone?'✓':'')+'</div></td>';
+        h+='<td class="'+cls+'"'+tip+'><div class="checkbox'+(isDone?' checked':'')+'" onclick="toggleRoutineCheck(\''+i.rule.id+'\',\''+i.pk+'\')">'+(isDone?'✓':'')+'</div></td>';
       } else {
-        h+='<td class="'+cls+'"></td>';
+        h+='<td class="'+cls+'"'+tip+'></td>';
       }
     }
     return h;
@@ -2294,7 +2442,7 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
       html+='<tr class="rt-group-first">';
       html+='<td class="rt-person-cell">'+p+'<span class="rt-person-count">0건</span></td>';
       html+='<td class="rt-name" style="color:var(--text-tertiary);cursor:default">반복 업무 없음</td>';
-      html+=daySlots(null);
+      html+=daySlots(null,p);
       html+='</tr>';
       return;
     }
@@ -2306,7 +2454,7 @@ function routineGridByTask(y,m,ym,last,inst,todayKey){
       html+=g.rule.task;
       html+=' <span style="color:var(--text-tertiary);font-size:11px">· '+routineWhenLabel(g.rule)+'</span>';
       html+='</td>';
-      html+=daySlots(g);
+      html+=daySlots(g,p);
       html+='</tr>';
     });
   });
